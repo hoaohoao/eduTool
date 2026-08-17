@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>快速連結</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      margin-bottom: 2rem;
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: #e2e8f0;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.06), transparent 40%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .icon {
+      font-size: 2rem;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.5rem;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .card-desc {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+      .grid-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>常用連結導航</h1>
+
+  <div class="grid-container">
+    <a href="getRandomAndRecord.html" target="_blank" class="card">
+      <div class="icon">✨</div>
+      <div class="card-title">抽籤</div>
+      <div class="card-desc">上課用抽籤</div>
+    </a>
+
+<!--
+
+    <a href="https://www.youtube.com" target="_blank" class="card">
+      <div class="icon">▶️🔍</div>
+      <div class="card-title">YouTube</div>
+      <div class="card-desc">觀看影音創作、音樂與線上直播內容</div>
+    </a>
+
+    <a href="https://github.com" target="_blank" class="card">
+      <div class="icon">🐙</div>
+      <div class="card-title">GitHub</div>
+      <div class="card-desc">程式碼託管與開源專案社群平台</div>
+    </a>
+
+    <a href="https://chat.openai.com" target="_blank" class="card">
+      <div class="icon">🤖</div>
+      <div class="card-title">ChatGPT</div>
+      <div class="card-desc">AI 人工智慧對話與協助工具</div>
+    </a>
+
+    <a href="https://www.wikipedia.org" target="_blank" class="card">
+      <div class="icon">📚</div>
+      <div class="card-title">維基百科</div>
+      <div class="card-desc">自由的線上百科全書，探索各種知識</div>
+    </a>
+
+    <a href="https://news.google.com" target="_blank" class="card">
+      <div class="icon">📰</div>
+      <div class="card-title">Google 新聞</div>
+      <div class="card-desc">掌握即時國際頭條與在地新聞動態</div>
+    </a>
+
+-->
+
+  </div>
+
+</body>
+</html>
