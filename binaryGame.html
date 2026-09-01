@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3分鐘二進位極限挑戰 (Binary Game)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid #334155;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 15px;
+        }
+
+        .title {
+            font-size: 1.4rem;
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .stat-item span {
+            color: var(--accent-cyan);
+        }
+
+        .bit-header {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr) 100px;
+            gap: 6px;
+            text-align: center;
+            font-weight: bold;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+
+        .game-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr) 100px;
+            gap: 6px;
+            align-items: center;
+            background: #0f172a;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+
+        .bit-btn {
+            aspect-ratio: 1;
+            background: #334155;
+            color: var(--text-main);
+            border: none;
+            border-radius: 6px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .bit-btn.active {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
+
+        .decimal-input {
+            width: 100%;
+            height: 100%;
+            min-height: 40px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            color: var(--text-main);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .decimal-input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        .decimal-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #f59e0b;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            background: var(--accent-cyan);
+            color: #0f172a;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Overlay Modal */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            border: 1px solid var(--accent-cyan);
+        }
+
+        .modal h2 { margin-bottom: 15px; color: var(--accent-cyan); }
+        .modal p { font-size: 1.1rem; margin: 10px 0; }
+        .share-btn { background: var(--accent-green); color: white; margin-top: 15px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="header">
+        <div class="title">BINARY GAME (3 MIN)</div>
+        <div class="stats">
+            <div class="stat-item">時間: <span id="timer">03:00</span></div>
+            <div class="stat-item">分數: <span id="score">0</span></div>
+        </div>
+    </div>
+
+    <div class="bit-header">
+        <div>128</div><div>64</div><div>32</div><div>16</div>
+        <div>8</div><div>4</div><div>2</div><div>1</div>
+        <div>10進位</div>
+    </div>
+
+    <div class="game-rows" id="rows-container">
+        <!-- 動態產生 5 個題目列 -->
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="start-btn" onclick="startGame()">開始遊戲</button>
+    </div>
+</div>
+
+<!-- 結算彈窗 -->
+<div class="modal hidden" id="game-over-modal">
+    <div class="modal-content">
+        <h2>時間到！遊戲結束</h2>
+        <p>最終得分：<b id="final-score" style="color:var(--accent-cyan)">0</b></p>
+        <p>答對題數：<b id="final-solved">0</b> 題</p>
+        <button class="btn share-btn" onclick="shareScore()">複製成績分享成果</button>
+        <button class="btn" onclick="startGame()" style="margin-top: 10px;">再玩一次</button>
+    </div>
+</div>
+
+<script>
+    const ROW_COUNT = 5;
+    const GAME_TIME = 180; // 3分鐘
+    let score = 0;
+    let solvedCount = 0;
+    let timeLeft = GAME_TIME;
+    let timerInterval = null;
+    let isPlaying = false;
+    let rowsData = [];
+
+    const bitValues = [128, 64, 32, 16, 8, 4, 2, 1];
+
+    function startGame() {
+        score = 0;
+        solvedCount = 0;
+        timeLeft = GAME_TIME;
+        isPlaying = true;
+        document.getElementById('score').innerText = score;
+        document.getElementById('game-over-modal').classList.add('hidden');
+        document.getElementById('start-btn').innerText = "重新開始";
+
+        initRows();
+        startTimer();
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        updateTimerDisplay();
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const secs = (timeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('timer').innerText = `${mins}:${secs}`;
+    }
+
+    function initRows() {
+        rowsData = [];
+        for (let i = 0; i < ROW_COUNT; i++) {
+            rowsData.push(generateRandomRow());
+        }
+        renderRows();
+    }
+
+    function generateRandomRow() {
+        const type = Math.random() > 0.5 ? 'dec2bin' : 'bin2dec';
+        const targetValue = Math.floor(Math.random() * 255) + 1; // 1 ~ 255
+
+        if (type === 'dec2bin') {
+            return { type, targetValue, currentBits: [0,0,0,0,0,0,0,0] };
+        } else {
+            const bits = targetValue.toString(2).padStart(8, '0').split('').map(Number);
+            return { type, targetValue, currentBits: bits, userInputValue: '' };
+        }
+    }
+
+    function renderRows() {
+        const container = document.getElementById('rows-container');
+        container.innerHTML = '';
+
+        rowsData.forEach((row, rowIndex) => {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'row';
+
+            if (row.type === 'dec2bin') {
+                row.currentBits.forEach((bit, bitIndex) => {
+                    const btn = document.createElement('button');
+                    btn.className = `bit-btn ${bit ? 'active' : ''}`;
+                    btn.innerText = bit;
+                    btn.disabled = !isPlaying;
+                    btn.onclick = () => toggleBit(rowIndex, bitIndex);
+                    rowDiv.appendChild(btn);
+                });
+
+                const targetDiv = document.createElement('div');
+                targetDiv.className = 'decimal-display';
+                targetDiv.innerText = row.targetValue;
+                rowDiv.appendChild(targetDiv);
+            } else {
+                row.currentBits.forEach(bit => {
+                    const btn = document.createElement('button');
+                    btn.className = `bit-btn ${bit ? 'active' : ''}`;
+                    btn.style.cursor = 'default';
+                    btn.innerText = bit;
+                    rowDiv.appendChild(btn);
+                });
+
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'decimal-input';
+                input.value = row.userInputValue || '';
+                input.disabled = !isPlaying;
+                input.oninput = (e) => checkDecimalInput(rowIndex, e.target.value);
+                rowDiv.appendChild(input);
+            }
+
+            container.appendChild(rowDiv);
+        });
+    }
+
+    function toggleBit(rowIndex, bitIndex) {
+        if (!isPlaying) return;
+        const row = rowsData[rowIndex];
+        row.currentBits[bitIndex] = row.currentBits[bitIndex] === 0 ? 1 : 0;
+
+        // 計算目前二進位總和
+        const currentSum = row.currentBits.reduce((sum, bit, idx) => sum + (bit * bitValues[idx]), 0);
+
+        if (currentSum === row.targetValue) {
+            handleCorrect(rowIndex);
+        } else {
+            renderRows();
+        }
+    }
+
+    function checkDecimalInput(rowIndex, val) {
+        if (!isPlaying) return;
+        const row = rowsData[rowIndex];
+        row.userInputValue = val;
+
+        if (parseInt(val) === row.targetValue) {
+            handleCorrect(rowIndex);
+        }
+    }
+
+    function handleCorrect(rowIndex) {
+        score += 100;
+        solvedCount++;
+        document.getElementById('score').innerText = score;
+
+        // 替換新題目
+        rowsData[rowIndex] = generateRandomRow();
+        renderRows();
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        isPlaying = false;
+        document.getElementById('final-score').innerText = score;
+        document.getElementById('final-solved').innerText = solvedCount;
+        document.getElementById('game-over-modal').classList.remove('hidden');
+        renderRows();
+    }
+
+    function shareScore() {
+        const text = `🎮 我在 3 分鐘 2 進位極限挑戰中獲得了 ${score} 分！（成功解開 ${solvedCount} 題）你能超越我嗎？`;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('成績已複製到剪貼簿！可以貼上分享給朋友了。');
+        });
+    }
+
+    // 初始化空面板
+    initRows();
+</script>
+</body>
+</html>

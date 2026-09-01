@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學生抽籤與集星紀錄系統</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Microsoft JhengHei", "微軟正黑體", Arial, sans-serif;
+        }
+        body {
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 95vw;
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background-color: #007bff;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover:not(:disabled) { background-color: #218838; }
+        .btn-warning { background-color: #ffc107; color: #212529; }
+        .btn-warning:hover:not(:disabled) { background-color: #e0a800; }
+        .btn-info { background-color: #17a2b8; }
+        .btn-info:hover:not(:disabled) { background-color: #138496; }
+        
+        .student-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .student-card {
+            width: 120px;
+            height: 120px;
+            background: #ffffff;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.1s, border-color 0.1s, transform 0.1s;
+            text-align: center;
+            padding: 5px;
+        }
+        .student-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .student-card .stars {
+            color: #ffc107;
+            margin-top: 6px;
+            word-break: break-all;
+            font-size: 14px;
+        }
+        /* 動畫焦點樣式 */
+        .student-card.highlight {
+            background-color: #ffff00 !important;
+            color: #000000 !important;
+            border-color: #d3d300 !important;
+        }
+        /* 中獎結果樣式 */
+        .student-card.winner {
+            background-color: #00008b !important;
+            color: #ffffff !important;
+            border-color: #00005b !important;
+        }
+
+        /* 彈窗樣式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 320px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>學生抽籤與集星紀錄</h1>
+    
+    <div class="toolbar">
+        <button id="btnInit">初始化</button>
+        <div class="input-group">
+            <label>班級名稱：</label>
+            <input type="text" id="txtClass" placeholder="例如：三年一班" value="三年一班">
+        </div>
+        <div class="input-group">
+            <label>學生人數：</label>
+            <input type="number" id="txtStudentAmount" min="1" value="30" style="width: 80px;">
+        </div>
+        
+        <button id="btnDoRnd" class="btn-warning">開始抽籤</button>
+        <button id="btnExport" class="btn-success">匯出 CSV</button>
+        <button id="btnSendGAS" class="btn-info">上傳至 Google Sheet</button>
+    </div>
+
+    <div class="student-grid" id="flpStudents"></div>
+</div>
+
+<!-- 給獎懲彈窗 -->
+<div class="modal-overlay" id="rewardModal">
+    <div class="modal">
+        <h3 id="modalTitle">給星星</h3>
+        <p id="modalPrompt">請選擇：</p>
+        <div class="modal-buttons">
+            <button id="btnO" class="btn-success">O (加星)</button>
+            <button id="btnX" class="btn-warning">X</button>
+            <button id="btnCancel" style="background-color: #6c757d;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 學生資料結構
+    let students = [];
+    let animationTimer = null;
+    let currentAnimStep = 0;
+    let totalAnimSteps = 0;
+    let intervalMs = 100;
+    let lastHighlightedIndex = -1;
+    let currentSelectedStudent = null;
+
+    // 請在下方替換為你的 Google Apps Script Web App URL
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwyOYAvhM_jU2lTpcRPF6aPBGhZYTAl1np28LPCH3x6LXClcdqJBKoYfTwsYJ7pmeuA9A/exec";
+
+    // Web Audio API 音效處理
+    let audioCtx = null;
+    let loopOscillator = null;
+    let loopGain = null;
+
+    function initAudioContext() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function startLoopSound() {
+        initAudioContext();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        loopOscillator = audioCtx.createOscillator();
+        loopGain = audioCtx.createGain();
+
+        loopOscillator.type = 'sine';
+        loopOscillator.frequency.setValueAtTime(500, audioCtx.currentTime);
+
+        const lfo = audioCtx.createOscillator();
+        lfo.frequency.setValueAtTime(12, audioCtx.currentTime);
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+
+        lfo.connect(lfoGain.gain);
+        loopGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+
+        loopOscillator.connect(loopGain);
+        loopGain.connect(audioCtx.destination);
+
+        lfo.start();
+        loopOscillator.start();
+    }
+
+    function stopLoopSound() {
+        if (loopOscillator) {
+            try {
+                loopOscillator.stop();
+                loopOscillator.disconnect();
+            } catch (e) {}
+            loopOscillator = null;
+        }
+    }
+
+    function playWinSound() {
+        initAudioContext();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+    }
+
+    // 1. 初始化學生格子
+    document.getElementById('btnInit').addEventListener('click', () => {
+        const amountInput = document.getElementById('txtStudentAmount').value;
+        const amount = parseInt(amountInput, 10);
+
+        if (isNaN(amount) || amount <= 0) {
+            alert("請輸入正確的學生人數（正整數）！");
+            return;
+        }
+
+        const container = document.getElementById('flpStudents');
+        container.innerHTML = '';
+        students = [];
+
+        for (let i = 1; i <= amount; i++) {
+            const student = {
+                seatNumber: i,
+                starCount: 0,
+                element: null
+            };
+
+            const card = document.createElement('div');
+            card.className = 'student-card';
+            student.element = card;
+
+            updateCardText(student);
+
+            card.addEventListener('click', () => openModal(student));
+
+            students.push(student);
+            container.appendChild(card);
+        }
+
+        alert(`已成功初始化 ${amount} 位學生格子！`);
+    });
+
+    function updateCardText(student) {
+        const stars = '★'.repeat(student.starCount);
+        student.element.innerHTML = `
+            <div>${student.seatNumber} 號</div>
+            <div class="stars">${stars}</div>
+        `;
+        student.element.classList.remove('highlight', 'winner');
+    }
+
+    function resetAllCardColors() {
+        students.forEach(s => {
+            s.element.classList.remove('highlight', 'winner');
+        });
+    }
+
+    // 2. 抽籤動畫控制
+    document.getElementById('btnDoRnd').addEventListener('click', () => {
+        if (students.length === 0) {
+            alert("請先按下 [初始化] 建立學生格子！");
+            return;
+        }
+
+        setButtonsEnabled(false);
+        resetAllCardColors();
+
+        currentAnimStep = 0;
+        totalAnimSteps = Math.floor(Math.random() * 13) + 20;
+        intervalMs = 100;
+        lastHighlightedIndex = -1;
+
+        startLoopSound();
+        runAnimationStep();
+    });
+
+    function runAnimationStep() {
+        if (lastHighlightedIndex >= 0) {
+            students[lastHighlightedIndex].element.classList.remove('highlight');
+        }
+
+        const randomIndex = Math.floor(Math.random() * students.length);
+        lastHighlightedIndex = randomIndex;
+
+        const currentCard = students[randomIndex].element;
+        currentCard.classList.add('highlight');
+
+        currentAnimStep++;
+
+        if (currentAnimStep > totalAnimSteps - 8) {
+            intervalMs += 60;
+        }
+
+        if (currentAnimStep < totalAnimSteps) {
+            animationTimer = setTimeout(runAnimationStep, intervalMs);
+        } else {
+            stopLoopSound();
+
+            setTimeout(() => {
+                const winner = students[lastHighlightedIndex];
+                winner.element.classList.remove('highlight');
+                winner.element.classList.add('winner');
+
+                winner.element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                playWinSound();
+
+                setTimeout(() => {
+                    alert(`恭喜抽中：${winner.seatNumber} 號！`);
+                    setButtonsEnabled(true);
+                }, 100);
+            }, 500);
+        }
+    }
+
+    function setButtonsEnabled(enabled) {
+        document.getElementById('btnDoRnd').disabled = !enabled;
+        document.getElementById('btnInit').disabled = !enabled;
+        document.getElementById('btnExport').disabled = !enabled;
+        document.getElementById('btnSendGAS').disabled = !enabled;
+    }
+
+    // 3. 點擊卡片彈窗處理
+    const modal = document.getElementById('rewardModal');
+
+    function openModal(student) {
+        currentSelectedStudent = student;
+        document.getElementById('modalTitle').textContent = `給 - ${student.seatNumber} 號`;
+        document.getElementById('modalPrompt').textContent = `請選擇對 ${student.seatNumber} 號：`;
+        modal.style.display = 'flex';
+    }
+
+    document.getElementById('btnO').addEventListener('click', () => {
+        if (currentSelectedStudent) {
+            currentSelectedStudent.starCount++;
+            updateCardText(currentSelectedStudent);
+        }
+        closeModal();
+    });
+
+    document.getElementById('btnX').addEventListener('click', closeModal);
+    document.getElementById('btnCancel').addEventListener('click', closeModal);
+
+    function closeModal() {
+        modal.style.display = 'none';
+        currentSelectedStudent = null;
+    }
+
+    // 4. 匯出 CSV 檔案
+    document.getElementById('btnExport').addEventListener('click', () => {
+        if (students.length === 0) {
+            alert("目前沒有可匯出的學生資料！");
+            return;
+        }
+
+        const classNameInput = document.getElementById('txtClass').value.trim();
+        const className = classNameInput || "未命名班級";
+
+        const now = new Date();
+        const timeStamp = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') + "_" +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+
+        const fileName = `${className}_${timeStamp}.csv`;
+
+        let csvContent = "\uFEFF座號,小星星數\n";
+        students.forEach(s => {
+            csvContent += `${s.seatNumber},${s.starCount}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+
+        link.setAttribute("href", url);
+        link.setAttribute("download", fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        alert(`匯出成功！檔案已下檔為：${fileName}`);
+    });
+
+    // 5. 新增：傳送資料至 Google Action Script (GAS)
+    document.getElementById('btnSendGAS').addEventListener('click', () => {
+        if (students.length === 0) {
+            alert("目前沒有學生資料可上傳！");
+            return;
+        }
+
+        const inputCode = prompt("請輸入暗號 (code)：");
+        if (inputCode === null) return; // 使用者按取消
+        if (inputCode.trim() === "") {
+            alert("暗號不可為空白！");
+            return;
+        }
+
+        const classNameInput = document.getElementById('txtClass').value.trim();
+        const className = classNameInput || "未命名班級";
+        const amount = students.length;
+
+        const now = new Date();
+        const datetime = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') + "_" +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+
+        // 整理要傳送的 payload
+        const payload = {
+            code: inputCode.trim(),
+            className: className,
+            datetime: datetime,
+            amount: amount,
+            students: students.map(s => ({
+                seatNumber: s.seatNumber,
+                starCount: s.starCount
+            }))
+        };
+
+        const btn = document.getElementById('btnSendGAS');
+        btn.disabled = true;
+        btn.textContent = "傳送中...";
+
+        fetch(GAS_URL, {
+            method: "POST",
+            // 使用 text/plain 避免 CORS preflight 預檢請求限制
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === "success") {
+                alert("傳送成功！" + result.message);
+            } else {
+                alert("傳送失敗：" + result.message);
+            }
+        })
+        .catch(err => {
+            alert("發送過程發生錯誤，請確認 GAS URL 是否設定正確！");
+            console.error(err);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = "上傳至 Google Sheet";
+        });
+    });
+
+    // 預設執行一次初始化
+    document.getElementById('btnInit').click();
+</script>
+
+</body>
+</html>
