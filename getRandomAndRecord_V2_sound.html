@@ -193,6 +193,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // 學生資料結構
     let students = [];
@@ -476,13 +477,21 @@
     });
 
     // 5. 新增：傳送資料至 Google Action Script (GAS)
-    document.getElementById('btnSendGAS').addEventListener('click', () => {
+    document.getElementById('btnSendGAS').addEventListener('click', async () => {
         if (students.length === 0) {
             alert("目前沒有學生資料可上傳！");
             return;
         }
 
-        const inputCode = prompt("請輸入暗號 (code)：");
+        //const inputCode = prompt("請輸入暗號 (code)：");
+
+        const { value: inputCode } = await Swal.fire({
+            title: '請輸入暗號',
+            input: 'password', // 這裡設定為 password 就會隱藏輸入內容
+            inputPlaceholder: '請輸入驗證密碼',
+            showCancelButton: true
+        });
+
         if (inputCode === null) return; // 使用者按取消
         if (inputCode.trim() === "") {
             alert("暗號不可為空白！");
