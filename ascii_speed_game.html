@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII 編碼速算衝分大挑戰</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --accent-hover: #0284c7;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --success-color: #22c55e;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background-color: var(--panel-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            border: 1px solid #334155;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-color);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+            border: 1px solid #1e293b;
+        }
+
+        .stat-item .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .stat-item .value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .value.timer { color: var(--warning-color); }
+        .value.score { color: var(--accent-color); }
+        .value.combo { color: var(--success-color); }
+        .value.highscore { color: #c084fc; }
+
+        /* Target Display */
+        .target-box {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 2px solid var(--accent-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .target-box .target-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .target-box .target-char {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+            font-family: monospace;
+            line-height: 1.1;
+        }
+
+        .target-box .target-hint {
+            font-size: 0.85rem;
+            color: var(--accent-color);
+            margin-top: 5px;
+        }
+
+        /* Bit Switches */
+        .bits-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .bit-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .bit-val {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-family: monospace;
+        }
+
+        .bit-btn {
+            width: 100%;
+            height: 50px;
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: monospace;
+        }
+
+        .bit-btn.active {
+            background-color: var(--accent-color);
+            color: #0f172a;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        .bit-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Live Preview */
+        .preview-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f172a;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-family: monospace;
+            font-size: 0.95rem;
+            border: 1px solid #334155;
+        }
+
+        .preview-box span {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* Controls & Buttons */
+        .controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: #0f172a;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-submit {
+            background-color: var(--success-color);
+            color: #ffffff;
+        }
+
+        .btn-submit:hover {
+            background-color: #16a34a;
+        }
+
+        .btn:disabled {
+            background-color: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Feedback Popup */
+        .feedback {
+            text-align: center;
+            height: 24px;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        .feedback.correct { color: var(--success-color); }
+        .feedback.wrong { color: var(--danger-color); }
+
+        /* Game Over Modal / Overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .modal {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            border: 1px solid var(--accent-color);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+
+        .modal h2 {
+            color: var(--accent-color);
+            margin-bottom: 15px;
+        }
+
+        .modal .final-score {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin: 15px 0;
+            font-family: monospace;
+        }
+
+        .modal p {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .game-container { padding: 18px; }
+            .stats-bar { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .target-box .target-char { font-size: 3.2rem; }
+            .bit-btn { height: 42px; font-size: 1rem; }
+            .preview-box { font-size: 0.8rem; flex-direction: column; gap: 4px; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="header">
+            <h1>ASCII 編碼速算衝分挑戰</h1>
+            <p>60秒極速對譯！調整 8 位元開關，拼出目標 ASCII 字元</p>
+        </div>
+
+        <!-- 數據統計欄 -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="label">剩餘時間</div>
+                <div class="value timer" id="timer">60s</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">目前得分</div>
+                <div class="value score" id="score">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">連擊 (Combo)</div>
+                <div class="value combo" id="combo">1x</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">最高紀錄</div>
+                <div class="value highscore" id="highscore">0</div>
+            </div>
+        </div>
+
+        <!-- 目標字元區 -->
+        <div class="target-box">
+            <div class="target-label">目標 ASCII 字元</div>
+            <div class="target-char" id="targetChar">?</div>
+            <div class="target-hint" id="targetHint">按下「開始遊戲」展開挑戰</div>
+        </div>
+
+        <!-- 8個二進位開關 -->
+        <div class="bits-container" id="bitsContainer">
+            <!-- JavaScript 會動態產生或寫死 8 個開關 (128, 64, 32, 16, 8, 4, 2, 1) -->
+        </div>
+
+        <!-- 即時數值預覽 -->
+        <div class="preview-box">
+            <div>二進位: <span id="binPreview">00000000</span></div>
+            <div>十進位: <span id="decPreview">0</span> (Hex: <span id="hexPreview">0x00</span>)</div>
+            <div>目前字元: <span id="charPreview">NUL</span></div>
+        </div>
+
+        <!-- 控制按鈕 -->
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn">開始遊戲</button>
+            <button class="btn btn-submit" id="submitBtn" disabled>提交答案 (Enter)</button>
+        </div>
+
+        <!-- 反饋提示 -->
+        <div class="feedback" id="feedback"></div>
+    </div>
+
+    <!-- 遊戲結束彈窗 -->
+    <div class="overlay" id="overlay">
+        <div class="modal">
+            <h2>時間到！挑戰結束</h2>
+            <p>你的最終得分</p>
+            <div class="final-score" id="finalScore">0</div>
+            <p id="newRecordText" style="color: var(--success-color); font-weight: bold; display: none;">🎉 刷新歷史最高紀錄！</p>
+            <button class="btn btn-primary" id="modalRestartBtn" style="width: 100%;">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        // 遊戲狀態與變數
+        const BIT_VALUES = [128, 64, 32, 16, 8, 4, 2, 1];
+        let bitStates = [0, 0, 0, 0, 0, 0, 0, 0];
+        let score = 0;
+        let combo = 1;
+        let timeLeft = 60;
+        let timerInterval = null;
+        let isPlaying = false;
+        let currentTargetChar = '';
+        let currentTargetCode = 0;
+        let highScore = localStorage.getItem('ascii_highscore') || 0;
+
+        // DOM 元素引用
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const comboEl = document.getElementById('combo');
+        const highscoreEl = document.getElementById('highscore');
+        const targetCharEl = document.getElementById('targetChar');
+        const targetHintEl = document.getElementById('targetHint');
+        const bitsContainer = document.getElementById('bitsContainer');
+        const binPreviewEl = document.getElementById('binPreview');
+        const decPreviewEl = document.getElementById('decPreview');
+        const hexPreviewEl = document.getElementById('hexPreview');
+        const charPreviewEl = document.getElementById('charPreview');
+        const startBtn = document.getElementById('startBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const feedbackEl = document.getElementById('feedback');
+        const overlayEl = document.getElementById('overlay');
+        const finalScoreEl = document.getElementById('finalScore');
+        const newRecordText = document.getElementById('newRecordText');
+        const modalRestartBtn = document.getElementById('modalRestartBtn');
+
+        // 初始化最高紀錄
+        highscoreEl.textContent = highScore;
+
+        // 渲染 8 位元按鈕
+        function initBitSwitches() {
+            bitsContainer.innerHTML = '';
+            BIT_VALUES.forEach((val, idx) => {
+                const col = document.createElement('div');
+                col.className = 'bit-column';
+
+                const valLabel = document.createElement('div');
+                valLabel.className = 'bit-val';
+                valLabel.textContent = val;
+
+                const btn = document.createElement('button');
+                btn.className = 'bit-btn';
+                btn.textContent = '0';
+                btn.dataset.index = idx;
+                btn.disabled = true;
+
+                btn.addEventListener('click', () => toggleBit(idx));
+
+                col.appendChild(valLabel);
+                col.appendChild(btn);
+                bitsContainer.appendChild(col);
+            });
+        }
+
+        // 切換開關狀態
+        function toggleBit(index) {
+            if (!isPlaying) return;
+            bitStates[index] = bitStates[index] === 0 ? 1 : 0;
+            updateBitUI();
+        }
+
+        // 重置所有開關為 0
+        function resetBits() {
+            bitStates = [0, 0, 0, 0, 0, 0, 0, 0];
+            updateBitUI();
+        }
+
+        // 更新開關與預覽 UI
+        function updateBitUI() {
+            const btns = bitsContainer.querySelectorAll('.bit-btn');
+            btns.forEach((btn, idx) => {
+                btn.textContent = bitStates[idx];
+                if (bitStates[idx] === 1) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // 計算當前數值
+            const binStr = bitStates.join('');
+            const decVal = parseInt(binStr, 2);
+            const hexVal = '0x' + decVal.toString(16).toUpperCase().padStart(2, '0');
+            
+            let charVal = '';
+            if (decVal >= 32 && decVal <= 126) {
+                charVal = String.fromCharCode(decVal);
+                if (charVal === ' ') charVal = '[ Space ]';
+            } else {
+                charVal = '[ 控制碼 ]';
+            }
+
+            binPreviewEl.textContent = binStr;
+            decPreviewEl.textContent = decVal;
+            hexPreviewEl.textContent = hexVal;
+            charPreviewEl.textContent = charVal;
+        }
+
+        // 生成隨機目標 (包含 A-Z, a-z, 0-9)
+        function generateNewTarget() {
+            const charRanges = [
+                { min: 65, max: 90 },  // A-Z
+                { min: 97, max: 122 }, // a-z
+                { min: 48, max: 57 }   // 0-9
+            ];
+            
+            const selectedRange = charRanges[Math.floor(Math.random() * charRanges.length)];
+            currentTargetCode = Math.floor(Math.random() * (selectedRange.max - selectedRange.min + 1)) + selectedRange.min;
+            currentTargetChar = String.fromCharCode(currentTargetCode);
+
+            targetCharEl.textContent = currentTargetChar;
+            targetHintEl.textContent = `十進位範圍: ${selectedRange.min} ~ ${selectedRange.max}`;
+        }
+
+        // 開始遊戲
+        function startGame() {
+            score = 0;
+            combo = 1;
+            timeLeft = 60;
+            isPlaying = true;
+
+            scoreEl.textContent = score;
+            comboEl.textContent = combo + 'x';
+            timerEl.textContent = timeLeft + 's';
+            feedbackEl.textContent = '';
+            feedbackEl.className = 'feedback';
+            overlayEl.style.display = 'none';
+
+            // 啟用按鈕與開關
+            const btns = bitsContainer.querySelectorAll('.bit-btn');
+            btns.forEach(btn => btn.disabled = false);
+            submitBtn.disabled = false;
+            startBtn.textContent = '重新開始';
+
+            resetBits();
+            generateNewTarget();
+
+            // 啟動倒數計時
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft + 's';
+
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        // 提交答案檢查
+        function checkAnswer() {
+            if (!isPlaying) return;
+
+            const currentDec = parseInt(bitStates.join(''), 2);
+
+            if (currentDec === currentTargetCode) {
+                // 答對處理
+                const addedScore = 50 * combo;
+                score += addedScore;
+                timeLeft += 3; // 加 8 秒
+                combo = Math.min(combo + 1, 10); // Combo 最高 5x
+
+                showFeedback(`✓ 正確！+${addedScore}分 (+3秒)`, 'correct');
+
+                // 更新數據UI
+                scoreEl.textContent = score;
+                comboEl.textContent = combo + 'x';
+                timerEl.textContent = timeLeft + 's';
+
+                // 自動切換到下一題與重置開關
+                resetBits();
+                generateNewTarget();
+            } else {
+                // 答錯處理
+                timeLeft = Math.max(0, timeLeft - 2); // 扣 2 秒
+                combo = 1; // 重置 Combo
+
+                showFeedback(`✗ 錯誤！扣 2 秒 (目標 ASCII 是 ${currentTargetCode})`, 'wrong');
+
+                comboEl.textContent = combo + 'x';
+                timerEl.textContent = timeLeft + 's';
+
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }
+        }
+
+        // 顯示臨時反饋
+        function showFeedback(msg, type) {
+            feedbackEl.textContent = msg;
+            feedbackEl.className = `feedback ${type}`;
+        }
+
+        // 結束遊戲
+        function endGame() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            timerEl.textContent = '0s';
+
+            // 禁用開關
+            const btns = bitsContainer.querySelectorAll('.bit-btn');
+            btns.forEach(btn => btn.disabled = true);
+            submitBtn.disabled = true;
+
+            // 檢查最高分
+            let isNewRecord = false;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('ascii_highscore', highScore);
+                highscoreEl.textContent = highScore;
+                isNewRecord = true;
+            }
+
+            // 顯示結算彈窗
+            finalScoreEl.textContent = score;
+            newRecordText.style.display = isNewRecord ? 'block' : 'none';
+            overlayEl.style.display = 'flex';
+        }
+
+        // 事件監聽
+        startBtn.addEventListener('click', startGame);
+        submitBtn.addEventListener('click', checkAnswer);
+        modalRestartBtn.addEventListener('click', startGame);
+
+        // 鍵盤 Quick Controls (Enter 提交, 數字 1-8 切換開關)
+        window.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+
+            if (e.key === 'Enter') {
+                checkAnswer();
+            } else if (e.key >= '1' && e.key <= '8') {
+                const idx = parseInt(e.key) - 1;
+                toggleBit(idx);
+            }
+        });
+
+        // 初始化
+        initBitSwitches();
+    </script>
+</body>
+</html>
