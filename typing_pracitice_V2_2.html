@@ -481,7 +481,17 @@
         }, 1000);
     }
 
-    // 使用 SweetAlert2 一次詢問班級與座號 (限數字)
+    // 取得或建立 Session 暗Key
+    function getOrCreateSessionKey() {
+        let key = sessionStorage.getItem('typing_session_key');
+        if (!key) {
+            key = 'KEY_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+            sessionStorage.setItem('typing_session_key', key);
+        }
+        return key;
+    }
+
+    // 修改 uploadScore 函式內部的 payload
     async function uploadScore() {
         const bestWords = sessionStorage.getItem('typing_best_words');
         if (!bestWords) {
@@ -514,18 +524,20 @@
             }
         });
 
-        if (!formValues) return; // 使用者按下取消
+        if (!formValues) return;
 
-        // 觸發 30 秒冷卻
         startUploadCooldown();
 
+        // 準備上傳資料（包含完成次數與 Session 暗Key）
         const payload = {
             className: formValues.className,
             seatNumber: formValues.seatNumber,
             words: parseInt(sessionStorage.getItem('typing_best_words')),
             accuracy: parseFloat(sessionStorage.getItem('typing_best_acc')),
             wpm: parseInt(sessionStorage.getItem('typing_best_wpm')),
-            kpm: parseInt(sessionStorage.getItem('typing_best_kpm'))
+            kpm: parseInt(sessionStorage.getItem('typing_best_kpm')),
+            sessionCount: parseInt(sessionStorage.getItem('typing_session_count') || '0'),
+            sessionKey: getOrCreateSessionKey()
         };
 
         try {
