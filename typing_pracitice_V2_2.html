@@ -321,6 +321,7 @@
             </div>
             <div class="best-score-details">
                 <div>已完成練習: <span class="val" id="bestCount">0 次</span></div>
+                <div>總正確字數: <span class="val" id="totalWords">0 個</span></div> <!-- 新增此行 -->
                 <div>最高正確字數: <span class="val" id="bestWords">-- 個</span></div>
                 <div>正確率: <span class="val" id="bestAcc">-- %</span></div>
                 <div>字數速度 (WPM): <span class="val" id="bestWPM">-- 字/分</span></div>
@@ -421,12 +422,19 @@
     const COOLDOWN_SECONDS = 10; 
     const UPLOAD_COOLDOWN_SECONDS = 30; // 上傳按鈕冷卻時間 30 秒
 
-    // 載入階段最佳成績
+    // 獲取 DOM 元素
+    const totalWordsElem = document.getElementById('totalWords');
+
+    
+
+    // 修改 載入成績 函式
     function loadBestScore() {
         const count = sessionStorage.getItem('typing_session_count') || '0';
+        const totalWords = sessionStorage.getItem('typing_total_words') || '0'; // 新增讀取總字數
         const bestWords = sessionStorage.getItem('typing_best_words');
         
         bestCountElem.textContent = `${count} 次`;
+        totalWordsElem.textContent = `${totalWords} 個`; // 顯示總字數
 
         if (bestWords !== null) {
             bestWordsElem.textContent = `${bestWords} 個`;
@@ -441,11 +449,18 @@
         }
     }
 
-    // 檢查並更新最高紀錄
+    
+
+    // 修改 檢查與更新最高紀錄 函式
     function checkAndUpdateBestScore(words, acc, wpm, kpm) {
         let count = parseInt(sessionStorage.getItem('typing_session_count') || '0');
         count++;
         sessionStorage.setItem('typing_session_count', count);
+
+        // 累加總正確字數
+        let totalWords = parseInt(sessionStorage.getItem('typing_total_words') || '0');
+        totalWords += words;
+        sessionStorage.setItem('typing_total_words', totalWords);
 
         const currentBestWords = sessionStorage.getItem('typing_best_words');
         let isNewRecord = false;
@@ -491,7 +506,9 @@
         return key;
     }
 
-    // 修改 uploadScore 函式內部的 payload
+    
+
+    // 修改 uploadScore 函式
     async function uploadScore() {
         const bestWords = sessionStorage.getItem('typing_best_words');
         if (!bestWords) {
@@ -528,11 +545,12 @@
 
         startUploadCooldown();
 
-        // 準備上傳資料（包含完成次數與 Session 暗Key）
+        // 準備上傳資料（加入 totalWords 總正確字數）
         const payload = {
             className: formValues.className,
             seatNumber: formValues.seatNumber,
             words: parseInt(sessionStorage.getItem('typing_best_words')),
+            totalWords: parseInt(sessionStorage.getItem('typing_total_words') || '0'), // 新增此欄位
             accuracy: parseFloat(sessionStorage.getItem('typing_best_acc')),
             wpm: parseInt(sessionStorage.getItem('typing_best_wpm')),
             kpm: parseInt(sessionStorage.getItem('typing_best_kpm')),
