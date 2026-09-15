@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中打速度測試 (唐詩宋詞版)</title>
+    <!-- 引入 SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --primary-color: #4a90e2;
+            --text-color: #333333;
+            --correct-color: #2ecc71;
+            --wrong-color: #e74c3c;
+            --pending-color: #7f8c8d;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'PingFang TC', 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 900px;
+            position: relative;
+        }
+
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .best-score-card {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            padding: 10px 16px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            min-width: 250px;
+        }
+
+        .best-score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            border-bottom: 1px dashed #ffe082;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .best-score-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #f57f17;
+        }
+
+        .upload-btn {
+            background-color: #27ae60;
+            color: white;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            background-color: #219150;
+        }
+
+        .upload-btn:disabled {
+            background-color: #a3e0b8;
+            cursor: not-allowed;
+        }
+
+        .best-score-details {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+            width: 100%;
+        }
+
+        .best-score-details div {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .best-score-details span.val {
+            font-weight: bold;
+            color: #d84315;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .time-select label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        select, button {
+            padding: 8px 16px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            outline: none;
+        }
+
+        button.main-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s, opacity 0.2s;
+        }
+
+        button.main-btn:hover:not(:disabled) {
+            background-color: #357abd;
+        }
+
+        button.main-btn:disabled {
+            background-color: #a0c4e8;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #eef2f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .typing-area {
+            background: #fafafa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+            user-select: none;
+        }
+
+        .line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .line-1 {
+            border-bottom: 2px dashed #e0e0e0;
+            padding-bottom: 15px;
+        }
+
+        .line-2 {
+            opacity: 0.5;
+        }
+
+        .word-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: transparent;
+            transition: all 0.2s ease;
+        }
+
+        .word-card.current {
+            background-color: #e2eefd;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .zh-word {
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--pending-color);
+            line-height: 1.2;
+            letter-spacing: 2px;
+        }
+
+        .char-correct {
+            color: var(--correct-color);
+        }
+
+        .char-wrong {
+            color: var(--wrong-color);
+            background-color: #fce4e4;
+        }
+
+        .input-box {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 20px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-box:focus {
+            border-color: var(--primary-color);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .new-record-tag {
+            background-color: #e74c3c;
+            color: white;
+            font-size: 14px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            display: none;
+        }
+
+        .result-list {
+            text-align: left;
+            margin: 20px 0;
+            font-size: 18px;
+            line-height: 1.8;
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #777;
+            font-style: italic;
+            font-size: 18px;
+            width: 100%;
+        }
+
+        .swal2-custom-input {
+            width: 80% !important;
+            margin: 10px auto !important;
+            font-size: 16px !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-area">
+        <h1>中打速度測試 (唐詩宋詞)</h1>
+        <div class="best-score-card">
+            <div class="best-score-header">
+                <span class="best-score-title">🏆 本階段最佳成績</span>
+                <button id="uploadBtn" class="upload-btn">上傳成績</button>
+            </div>
+            <div class="best-score-details">
+                <div>已完成練習: <span class="val" id="bestCount">0 次</span></div>
+                <div>總正確字數: <span class="val" id="totalWords">0 個</span></div>
+                <div>最高正確字數: <span class="val" id="bestWords">-- 個</span></div>
+                <div>正確率: <span class="val" id="bestAcc">-- %</span></div>
+                <div>字數速度 (CPM): <span class="val" id="bestWPM">-- 字/分</span></div>
+                <div>按鍵速度 (KPM): <span class="val" id="bestKPM">-- /分</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <a href="https://docs.google.com/spreadsheets/d/1D3nvNmZlJBFDq2N1Flx_bsD9XPA-xswn1K8hPGt-rDk" target="_blank">成績暫存列表</a>
+    </div>
+    
+    <div class="controls">
+        <div class="time-select">
+            <label for="timerSelect">選擇時間：</label>
+            <select id="timerSelect">
+                <option value="180">3 分鐘</option>
+                <option value="300">5 分鐘</option>
+            </select>
+        </div>
+        <button id="restartBtn" class="main-btn">重新開始</button>
+    </div>
+
+    <div class="stats-bar">
+        <div>時間: <span id="timeDisplay">03:00</span></div>
+        <div>正確率: <span id="accuracyDisplay">100%</span></div>
+    </div>
+
+    <div class="typing-area" id="typingArea">
+        <div class="line line-1" id="line1"><div class="loading-text">正在載入詩詞...</div></div>
+        <div class="line line-2" id="line2"></div>
+    </div>
+
+    <input type="text" id="typingInput" class="input-box" placeholder="點擊此處輸入中文 (句子間按空白鍵跳句)..." disabled autocomplete="off">
+</div>
+
+<!-- 結算彈窗 -->
+<div class="modal-overlay" id="resultModal">
+    <div class="modal">
+        <h2>練習完成！<span class="new-record-tag" id="newRecordTag">🎉 新紀錄！</span></h2>
+        <div class="result-list">
+            <p><strong>正確字數 (Words):</strong> <span id="resWords">0</span> 個</p>
+            <p><strong>正確率 (Accuracy):</strong> <span id="resAccuracy">0%</span></p>
+            <p><strong>字數速度 (CPM):</strong> <span id="resWPM">0</span> 字/分</p>
+            <p><strong>按鍵速度 (KPM):</strong> <span id="resKPM">-1</span> /分</p>
+        </div>
+        <button id="closeModalBtn" class="main-btn">再試一次</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbylTCjtZQC2as73f96BKvZiUid1NCRqWbT1B2buktFkwwZ4FthWK5wRoqsZkiXTIAeE1Q/exec';
+
+    const POETRY_DATABASE = [
+        "床前明月光 疑是地上霜 舉頭望明月 低頭思故鄉",
+        "白日依山盡 黃河入海流 欲窮千里目 更上一層樓",
+        "千山鳥飛絕 萬徑人蹤滅 孤舟蓑笠翁 獨釣寒江雪",
+        "紅豆生南國 春來發幾枝 願君多採擷 此物最相思",
+        "松下問童子 言師採藥去 只在此山中 雲深不知處",
+        "清明時節雨紛紛 路上行人欲斷魂 借問酒家何處有 牧童遙指杏花村",
+        "朝辭白帝彩雲間 千里江陵一日還 兩岸猿聲啼不住 輕舟已過萬重山",
+        "寒雨連江夜入吳 平明送客楚山孤 洛陽親友如相問 一片冰心在玉壺",
+        "月落烏啼霜滿天 江楓漁火對愁眠 姑蘇城外寒山寺 夜半鐘聲到客船",
+        "獨在異鄉為異客 每逢佳節倍思親 遙知兄弟登高處 遍插茱萸少一人",
+        "大江東去 浪淘盡 千古風流人物 故壘西邊 人道是 三國周郎赤壁",
+        "亂石穿空 驚濤拍岸 捲起千堆雪 江山如畫 一時多少豪傑",
+        "明月幾時有 把酒問青天 不知天上宮闕 今夕是何年",
+        "我欲乘風歸去 又恐瓊樓玉宇 高處不勝寒 起舞弄清影 何似在人間",
+        "人有悲歡離合 月有陰晴圓缺 此事古難全 但願人長久 千里共嬋娟",
+        "尋尋覓覓 冷冷清清 淒淒慘慘戚戚 乍暖還寒時候 最難將息",
+        "三杯兩盞淡酒 怎敵他 晚來風急 雁過也 正傷心 卻是舊時相識",
+        "滿地黃花堆積 憔悴損 如今有誰堪摘 守著窗兒 獨自怎生得黑",
+        "梧桐更兼細雨 到黃昏 點點滴滴 這次第 怎一個愁字了得",
+        "花自飄零水自流 一種相思 兩處閒愁 此情無計可消除 才下心頭 卻上心頭",
+        "東風夜放花千樹 更吹落 星如雨 寶馬雕車香滿路 鳳簫聲動 玉壺光轉 一夜魚龍舞",
+        "蛾兒雪柳黃金縷 笑語盈盈暗香去 眾裡尋他千百度 驀然回首 那人卻在 燈火闌珊處",
+        "君不見黃河之水天上來 奔流到海不復回 君不見高堂明鏡悲白髮 朝如青絲暮成雪",
+        "人生得意須盡歡 莫使金樽空對月 天生我材必有用 千金散盡還複來",
+        "烹羊宰牛且為樂 會須一飲三百杯 岑夫子 丹丘生 將進酒 杯莫停",
+        "怒髮衝冠 憑欄處 瀟瀟雨歇 抬望眼 仰天長嘯 壯懷激烈",
+        "三十功名塵與土 八千里路雲和月 莫等閒 白了少年頭 空悲切",
+        "靖康恥 猶未雪 臣子恨 何時滅 駕長車 踏破賀蘭山缺",
+        "壯志飢餐胡虜肉 笑談渴飲匈奴血 待從頭 收拾舊山河 朝天闕",
+        "葡萄美酒夜光杯 欲飲琵琶馬上催 醉臥沙場君莫笑 古來徵戰幾人回",
+        "黃河遠上白雲間 一片孤城萬仞山 羌笛何須怨楊柳 春風不度玉門關",
+        "誓掃匈奴不顧身 五千貂錦喪胡塵 可憐無定河邊骨 猶是春閨夢裡人",
+        "勝敗兵家事不期 包羞忍恥是男兒 江東子弟多才俊 捲土重來未可知",
+        "朱雀橋邊野草花 烏衣巷口夕陽斜 舊時王謝堂前燕 飛入尋常百姓家"
+    ];
+
+    let sentencePool = [];       
+    let line1Obj = [];       
+    let line2Obj = [];       
+    let currentWordIndex = 0;  
+    
+    let timer = null;
+    let cooldownTimer = null; 
+    let uploadCooldownTimer = null;
+    let cooldownRemaining = 0;
+    let uploadCooldownRemaining = 0;
+
+    let timeTotal = 180;
+    let timeRemaining = 180;
+    let isPlaying = false;
+
+    let totalAttempts = 0;
+    let correctAttempts = 0;
+    let correctWordsCount = 0;
+
+    // 中文輸入法組字狀態控制標記
+    let isComposing = false;
+
+    const line1Elem = document.getElementById('line1');
+    const line2Elem = document.getElementById('line2');
+    const typingInput = document.getElementById('typingInput');
+    const timerSelect = document.getElementById('timerSelect');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const accuracyDisplay = document.getElementById('accuracyDisplay');
+    const restartBtn = document.getElementById('restartBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const resultModal = document.getElementById('resultModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
+    const bestCountElem = document.getElementById('bestCount');
+    const totalWordsElem = document.getElementById('totalWords');
+    const bestWordsElem = document.getElementById('bestWords');
+    const bestAccElem = document.getElementById('bestAcc');
+    const bestWPMElem = document.getElementById('bestWPM');
+    const bestKPMElem = document.getElementById('bestKPM');
+    const newRecordTag = document.getElementById('newRecordTag');
+
+    const WORDS_PER_LINE = 4;
+    const COOLDOWN_SECONDS = 10; 
+    const UPLOAD_COOLDOWN_SECONDS = 30;
+
+    function loadBestScore() {
+        const count = sessionStorage.getItem('typing_session_count') || '0';
+        const totalWords = sessionStorage.getItem('typing_total_words') || '0';
+        const bestWords = sessionStorage.getItem('typing_best_words');
+        
+        bestCountElem.textContent = `${count} 次`;
+        totalWordsElem.textContent = `${totalWords} 個`;
+
+        if (bestWords !== null) {
+            bestWordsElem.textContent = `${bestWords} 個`;
+            bestAccElem.textContent = `${sessionStorage.getItem('typing_best_acc')}%`;
+            bestWPMElem.textContent = `${sessionStorage.getItem('typing_best_wpm')} 字/分`;
+            bestKPMElem.textContent = `-1 /分`;
+        } else {
+            bestWordsElem.textContent = '-- 個';
+            bestAccElem.textContent = '-- %';
+            bestWPMElem.textContent = '-- 字/分';
+            bestKPMElem.textContent = '-1 /分';
+        }
+    }
+
+    function checkAndUpdateBestScore(words, acc, wpm, kpm) {
+        let count = parseInt(sessionStorage.getItem('typing_session_count') || '0');
+        count++;
+        sessionStorage.setItem('typing_session_count', count);
+
+        let totalWords = parseInt(sessionStorage.getItem('typing_total_words') || '0');
+        totalWords += words;
+        sessionStorage.setItem('typing_total_words', totalWords);
+
+        const currentBestWords = sessionStorage.getItem('typing_best_words');
+        let isNewRecord = false;
+
+        if (currentBestWords === null || words > parseInt(currentBestWords)) {
+            sessionStorage.setItem('typing_best_words', words);
+            sessionStorage.setItem('typing_best_acc', acc);
+            sessionStorage.setItem('typing_best_wpm', wpm);
+            sessionStorage.setItem('typing_best_kpm', -1);
+            isNewRecord = true;
+        }
+
+        loadBestScore();
+        return isNewRecord;
+    }
+
+    function startUploadCooldown() {
+        clearInterval(uploadCooldownTimer);
+        uploadCooldownRemaining = UPLOAD_COOLDOWN_SECONDS;
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = `冷卻中(${uploadCooldownRemaining}s)`;
+
+        uploadCooldownTimer = setInterval(() => {
+            uploadCooldownRemaining--;
+            if (uploadCooldownRemaining > 0) {
+                uploadBtn.textContent = `冷卻中(${uploadCooldownRemaining}s)`;
+            } else {
+                clearInterval(uploadCooldownTimer);
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '上傳成績';
+            }
+        }, 1000);
+    }
+
+    function getOrCreateSessionKey() {
+        let key = sessionStorage.getItem('typing_session_key');
+        if (!key) {
+            key = 'KEY_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+            sessionStorage.setItem('typing_session_key', key);
+        }
+        return key;
+    }
+
+    async function uploadScore() {
+        const bestWords = sessionStorage.getItem('typing_best_words');
+        if (!bestWords) {
+            Swal.fire({
+                icon: 'warning',
+                title: '尚未有成績',
+                text: '目前尚未有最佳成績可供上傳！請先完成至少一次練習。'
+            });
+            return;
+        }
+
+        const { value: formValues } = await Swal.fire({
+            title: '上傳成績',
+            html:
+                '<input id="swal-class" class="swal2-input swal2-custom-input" type="number" placeholder="請輸入班級 (數字)">' +
+                '<input id="swal-seat" class="swal2-input swal2-custom-input" type="number" placeholder="請輸入座號 (數字)">',
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: '確認上傳',
+            cancelButtonText: '取消',
+            preConfirm: () => {
+                const className = document.getElementById('swal-class').value.trim();
+                const seatNumber = document.getElementById('swal-seat').value.trim();
+
+                if (!className || !seatNumber) {
+                    Swal.showValidationMessage('請完整輸入班級與座號！');
+                    return false;
+                }
+                return { className, seatNumber };
+            }
+        });
+
+        if (!formValues) return;
+
+        startUploadCooldown();
+
+        const payload = {
+            className: "chinese_"+formValues.className,
+            seatNumber: formValues.seatNumber,
+            words: parseInt(sessionStorage.getItem('typing_best_words')),
+            totalWords: parseInt(sessionStorage.getItem('typing_total_words') || '0'),
+            accuracy: parseFloat(sessionStorage.getItem('typing_best_acc')),
+            wpm: parseInt(sessionStorage.getItem('typing_best_wpm')),
+            kpm: -1,
+            sessionCount: parseInt(sessionStorage.getItem('typing_session_count') || '0'),
+            sessionKey: getOrCreateSessionKey()
+        };
+
+        try {
+            uploadBtn.textContent = '上傳中...';
+            await fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            });
+
+            Swal.fire({
+                icon: 'success',
+                title: '上傳完成！',
+                text: '成績已成功發送至伺服器。',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (error) {
+            console.error('Upload Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: '上傳失敗',
+                text: '無法發送資料，請檢查網路連線或 GAS 網址！'
+            });
+        }
+    }
+
+    function startCooldown() {
+        clearInterval(cooldownTimer);
+        cooldownRemaining = COOLDOWN_SECONDS;
+        restartBtn.disabled = true;
+        restartBtn.textContent = `重新開始 (${cooldownRemaining}s)`;
+
+        cooldownTimer = setInterval(() => {
+            cooldownRemaining--;
+            if (cooldownRemaining > 0) {
+                restartBtn.textContent = `重新開始 (${cooldownRemaining}s)`;
+            } else {
+                clearInterval(cooldownTimer);
+                restartBtn.disabled = false;
+                restartBtn.textContent = '重新開始';
+            }
+        }, 1000);
+    }
+
+    function shuffleArray(array) {
+        let arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function fetchMoreSentences() {
+        let allSentences = [];
+        POETRY_DATABASE.forEach(poem => {
+            const parts = poem.split(' ');
+            allSentences.push(...parts);
+        });
+        sentencePool.push(...shuffleArray(allSentences));
+    }
+
+    function processWordObjects(count) {
+        if (sentencePool.length < count) {
+            fetchMoreSentences();
+        }
+        const rawWords = sentencePool.splice(0, count);
+        return rawWords.map(word => ({ word }));
+    }
+
+    function fetchWords() {
+        line1Elem.innerHTML = '<div class="loading-text">正在載入詩詞...</div>';
+        line2Elem.innerHTML = '';
+        
+        sentencePool = [];
+        fetchMoreSentences();
+        
+        line1Obj = processWordObjects(WORDS_PER_LINE);
+        line2Obj = processWordObjects(WORDS_PER_LINE);
+        
+        renderLines();
+        typingInput.disabled = false;
+    }
+
+    function renderLines() {
+        line1Elem.innerHTML = '';
+        line1Obj.forEach((item, idx) => {
+            const card = document.createElement('div');
+            card.className = 'word-card' + (idx === currentWordIndex ? ' current' : '');
+            card.id = `card-line1-${idx}`;
+            
+            card.innerHTML = `
+                <div class="zh-word" id="line1-word-${idx}">${item.word}</div>
+            `;
+            line1Elem.appendChild(card);
+        });
+
+        line2Elem.innerHTML = '';
+        line2Obj.forEach((item) => {
+            const card = document.createElement('div');
+            card.className = 'word-card';
+            card.innerHTML = `
+                <div class="zh-word">${item.word}</div>
+            `;
+            line2Elem.appendChild(card);
+        });
+    }
+
+    function shiftToNextLine() {
+        currentWordIndex = 0;
+        line1Obj = [...line2Obj];
+        renderLines();
+
+        line2Obj = processWordObjects(WORDS_PER_LINE);
+        line2Elem.innerHTML = '';
+        line2Obj.forEach((item) => {
+            const card = document.createElement('div');
+            card.className = 'word-card';
+            card.innerHTML = `
+                <div class="zh-word">${item.word}</div>
+            `;
+            line2Elem.appendChild(card);
+        });
+    }
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function initGame(triggerCooldown = false) {
+        clearInterval(timer);
+        isPlaying = false;
+        isComposing = false;
+        timeTotal = parseInt(timerSelect.value);
+        timeRemaining = timeTotal;
+        timeDisplay.textContent = formatTime(timeRemaining);
+        
+        currentWordIndex = 0;
+        totalAttempts = 0;
+        correctAttempts = 0;
+        correctWordsCount = 0;
+
+        accuracyDisplay.textContent = '100%';
+        typingInput.value = '';
+        typingInput.disabled = true;
+        resultModal.style.display = 'none';
+
+        if (triggerCooldown) {
+            startCooldown();
+        }
+
+        fetchWords();
+    }
+
+    function startTimer() {
+        isPlaying = true;
+        timer = setInterval(() => {
+            timeRemaining--;
+            timeDisplay.textContent = formatTime(timeRemaining);
+
+            if (timeRemaining <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function updateAccuracy() {
+        if (totalAttempts === 0) {
+            accuracyDisplay.textContent = '100%';
+            return 100;
+        }
+        const acc = Math.max(0, Math.round((correctAttempts / totalAttempts) * 100));
+        accuracyDisplay.textContent = `${acc}%`;
+        return acc;
+    }
+
+    // --- 中文輸入法的核心控制邏輯 ---
+
+    // 開始組字（注音/拼音輸入中）
+    typingInput.addEventListener('compositionstart', () => {
+        isComposing = true;
+    });
+
+    // 完成選字（按下 Enter 完成組字）
+    typingInput.addEventListener('compositionend', () => {
+        isComposing = false;
+        handleTypingCheck(); // 真正的中文選出後才進行標記與邏輯比對
+    });
+
+    // input 事件：處理空白鍵送出與即時狀態
+    typingInput.addEventListener('input', () => {
+        if (!isPlaying && typingInput.value.length > 0) {
+            startTimer();
+        }
+
+        // 如果還在打注音選字階段，完全不處理標記
+        if (isComposing) return;
+
+        handleTypingCheck();
+    });
+
+    // 核心比對標記邏輯
+    function handleTypingCheck() {
+        const inputVal = typingInput.value;
+        const currentItem = line1Obj[currentWordIndex];
+        if (!currentItem) return;
+        
+        const currentWord = currentItem.word;
+        const currentWordElem = document.getElementById(`line1-word-${currentWordIndex}`);
+        const currentCard = document.getElementById(`card-line1-${currentWordIndex}`);
+
+        // 按下空白鍵跳下一句
+        if (inputVal.endsWith(' ')) {
+            const trimmedInput = inputVal.trim();
+            totalAttempts++;
+
+            let matchChars = 0;
+            for (let i = 0; i < Math.min(trimmedInput.length, currentWord.length); i++) {
+                if (trimmedInput[i] === currentWord[i]) {
+                    matchChars++;
+                }
+            }
+
+            if (trimmedInput === currentWord) {
+                correctAttempts++;
+                correctWordsCount += currentWord.length;
+                if (currentWordElem) currentWordElem.style.color = 'var(--correct-color)';
+            } else {
+                correctWordsCount += matchChars;
+                if (currentWordElem) currentWordElem.style.color = 'var(--wrong-color)';
+            }
+
+            updateAccuracy();
+
+            if (currentCard) currentCard.classList.remove('current');
+            currentWordIndex++;
+
+            if (currentWordIndex >= line1Obj.length) {
+                shiftToNextLine();
+            } else {
+                const nextCard = document.getElementById(`card-line1-${currentWordIndex}`);
+                if (nextCard) nextCard.classList.add('current');
+            }
+
+            typingInput.value = '';
+            return;
+        }
+
+        // 中文字即時對照渲染 (綠字/紅字)
+        let formattedHTML = '';
+        for (let i = 0; i < currentWord.length; i++) {
+            if (i < inputVal.length) {
+                if (inputVal[i] === currentWord[i]) {
+                    formattedHTML += `<span class="char-correct">${currentWord[i]}</span>`;
+                } else {
+                    formattedHTML += `<span class="char-wrong">${currentWord[i]}</span>`;
+                }
+            } else {
+                formattedHTML += currentWord[i];
+            }
+        }
+        if (currentWordElem) {
+            currentWordElem.innerHTML = formattedHTML;
+        }
+    }
+
+    function endGame() {
+        clearInterval(timer);
+        isPlaying = false;
+        typingInput.disabled = true;
+
+        const timeSpentInMinutes = (timeTotal - timeRemaining) / 60;
+        const minutes = timeSpentInMinutes > 0 ? timeSpentInMinutes : (timeTotal / 60);
+
+        const finalAccuracy = updateAccuracy();
+        const kpm = -1;
+        const wpm = Math.round(correctWordsCount / minutes);
+
+        const isNewRecord = checkAndUpdateBestScore(correctWordsCount, finalAccuracy, wpm, kpm);
+        newRecordTag.style.display = isNewRecord ? 'inline-block' : 'none';
+
+        document.getElementById('resWords').textContent = correctWordsCount;
+        document.getElementById('resAccuracy').textContent = `${finalAccuracy}%`;
+        document.getElementById('resWPM').textContent = wpm;
+        document.getElementById('resKPM').textContent = -1;
+
+        resultModal.style.display = 'flex';
+    }
+
+    timerSelect.addEventListener('change', () => initGame(false));
+    restartBtn.addEventListener('click', () => initGame(true));
+    uploadBtn.addEventListener('click', uploadScore);
+    closeModalBtn.addEventListener('click', () => initGame(true));
+
+    window.onload = () => {
+        loadBestScore();
+        initGame(false);
+    };
+</script>
+
+</body>
+</html>
