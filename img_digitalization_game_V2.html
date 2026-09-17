@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素解碼師：客戶特急件</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background-color: #12131c; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .game-container { background-color: #1d1e2c; border: 3px solid #3d415a; border-radius: 12px; width: 920px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3d415a; padding-bottom: 16px; margin-bottom: 16px; }
+        h1 { color: #00e5ff; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+        .status-bar { display: flex; gap: 20px; font-weight: bold; font-size: 16px; }
+        .highlight-yellow { color: #ffd700; }
+        .highlight-cyan { color: #00e5ff; }
+
+        /* 客戶需求卡片 */
+        .order-card { background: #25283b; border-left: 5px solid #00e5ff; border-radius: 6px; padding: 14px 18px; margin-bottom: 20px; }
+        .order-card h3 { color: #ff9100; font-size: 15px; margin-bottom: 6px; }
+        .order-card p { font-size: 14px; color: #d0d0d0; line-height: 1.4; }
+
+        .workspace { display: flex; gap: 20px; margin-bottom: 20px; }
+        .canvas-card { flex: 1; background: #12131c; border: 2px solid #2e3248; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .canvas-card h4 { font-size: 14px; margin-bottom: 10px; color: #aaa; }
+        .canvas-wrapper { position: relative; width: 256px; height: 256px; background: #000; cursor: crosshair; }
+        canvas { display: block; image-rendering: pixelated; }
+
+        /* 繪圖與分區控制 */
+        .tool-panel { display: flex; gap: 12px; background: #25283b; padding: 12px; border-radius: 8px; margin-bottom: 16px; align-items: center; }
+        .tool-title { font-size: 13px; font-weight: bold; color: #00e5ff; }
+        .btn-tool { background: #343852; color: #fff; border: 1px solid #4f557a; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-tool.active { background: #00e5ff; color: #12131c; font-weight: bold; border-color: #00e5ff; }
+        
+        .meters-panel { background: #181a26; border-radius: 8px; padding: 14px; margin-bottom: 20px; }
+        .meter-group { margin-bottom: 10px; }
+        .meter-group:last-child { margin-bottom: 0; }
+        .meter-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+        .meter-bar-bg { height: 12px; background: #0a0b10; border-radius: 6px; overflow: hidden; }
+        .meter-bar-fill { height: 100%; width: 0%; transition: width 0.2s; }
+
+        .actions { display: flex; justify-content: flex-end; gap: 12px; }
+        .btn-action { background: #00e5ff; color: #12131c; border: none; padding: 12px 24px; font-size: 15px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn-action:hover { background: #73f0ff; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 99; }
+        .modal { background: #1d1e2c; border: 2px solid #00e5ff; border-radius: 12px; padding: 28px; text-align: center; max-width: 480px; width: 90%; }
+        .modal h2 { color: #00e5ff; margin-bottom: 12px; }
+        .modal p { color: #ccc; font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
+        .score-box { background: #12131c; border: 1px solid #3d415a; border-radius: 8px; padding: 14px; margin: 14px 0; text-align: left; }
+        .score-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+        .rank-badge { font-size: 32px; font-weight: bold; color: #ffd700; margin-top: 10px; text-align: center; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <header>
+            <h1>像素解碼師：客戶特急件</h1>
+            <div class="status-bar">
+                <div>進度: <span id="level-display" class="highlight-yellow">1</span>/3</div>
+                <div>累計得分: <span id="total-score-display" class="highlight-cyan">0</span> pts</div>
+            </div>
+        </header>
+
+        <!-- 客戶訂單內容 -->
+        <div class="order-card">
+            <h3 id="client-title">客戶需求單 #1</h3>
+            <p id="client-desc">載入中...</p>
+        </div>
+
+        <div class="workspace">
+            <div class="canvas-card">
+                <h4>目標原圖</h4>
+                <div class="canvas-wrapper">
+                    <canvas id="targetCanvas" width="256" height="256"></canvas>
+                </div>
+            </div>
+            <div class="canvas-card">
+                <h4>分區畫布 (點擊畫布畫出「高優先區域」)</h4>
+                <div class="canvas-wrapper">
+                    <canvas id="maskCanvas" width="256" height="256"></canvas>
+                </div>
+            </div>
+            <div class="canvas-card">
+                <h4>數位化結果</h4>
+                <div class="canvas-wrapper">
+                    <canvas id="outputCanvas" width="256" height="256"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 區域工具設定 -->
+        <div class="tool-panel">
+            <span class="tool-title">高精細畫筆設定：</span>
+            <button class="btn-tool active" id="btn-brush-16">精細網格 (16x16)</button>
+            <button class="btn-tool" id="btn-brush-32">極致網格 (32x32)</button>
+            <button class="btn-tool" id="btn-clear" style="margin-left: auto; background:#a82828;">清除分區</button>
+        </div>
+
+        <div class="meters-panel">
+            <div class="meter-group">
+                <div class="meter-label">
+                    <span>關鍵區域還原度 (Key Region Accuracy)</span>
+                    <span id="key-acc-val">0%</span>
+                </div>
+                <div class="meter-bar-bg">
+                    <div id="key-acc-bar" class="meter-bar-fill" style="background:#00e5ff;"></div>
+                </div>
+            </div>
+            <div class="meter-group">
+                <div class="meter-label">
+                    <span>記憶體用量 (Memory Budget) / 上限: <span id="max-mem-val">256</span> Bytes</span>
+                    <span id="mem-val">0 Bytes</span>
+                </div>
+                <div class="meter-bar-bg">
+                    <div id="mem-bar" class="meter-bar-fill" style="background:#00e676;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="btn-submit" class="btn-action">交付訂單結算</button>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">像素解碼事務所</h2>
+            <p id="modal-msg">歡迎開工！你將收到 3 份來自不同客戶的圖像傳輸委託。請使用畫筆塗抹「重點特徵區域」，利用有限的記憶體預算進行區域性數位化，達成最高評分！</p>
+            <div id="score-box" class="score-box hidden">
+                <div id="score-rows-container"></div>
+                <div id="rank-badge" class="rank-badge">S</div>
+            </div>
+            <button id="modal-btn" class="btn-action">接單開工</button>
+        </div>
+    </div>
+
+    <script>
+        // 10 題客戶訂單資料庫
+        const clientPool = [
+            {
+                id: 1,
+                title: "監視器廠商：夜間車牌辨識",
+                desc: "「我們需要辨識黑夜中車輛的【中央車牌】！背景黑色馬路不重要，請把記憶體全壓在車牌上！」",
+                maxMem: 200,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#111'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#444'; ctx.fillRect(40,120,176,80); // 車身
+                    ctx.fillStyle = '#fff'; ctx.fillRect(96,150,64,30); // 車牌 (關鍵)
+                    ctx.fillStyle = '#000'; ctx.font = "bold 16px sans-serif"; ctx.fillText("AB-123", 100, 172);
+                },
+                getKeyMask: (ctx) => { ctx.fillRect(96,150,64,30); }
+            },
+            {
+                id: 2,
+                title: "古董收藏家：紅寶石戒指",
+                desc: "「這張照片背景是全黑木桌，重點是【中央的紅寶石】切面光澤，千萬不能失真！」",
+                maxMem: 220,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#2b1d0c'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(128,128,60,0,Math.PI*2); ctx.fill(); // 金戒
+                    ctx.fillStyle = '#ff0044'; ctx.beginPath(); ctx.arc(128,128,30,0,Math.PI*2); ctx.fill(); // 寶石
+                },
+                getKeyMask: (ctx) => { ctx.beginPath(); ctx.arc(128,128,30,0,Math.PI*2); ctx.fill(); }
+            },
+            {
+                title: "醫療診所：X光骨折定位",
+                desc: "「請將解析度集中在【右上方骨骼關節裂痕】，周圍肌肉組織簡單處理即可。」",
+                maxMem: 250,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#000'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#ddd'; ctx.fillRect(60,20,136,216); // 骨頭
+                    ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(140,40); ctx.lineTo(170,70); ctx.stroke(); // 裂痕
+                },
+                getKeyMask: (ctx) => { ctx.fillRect(130,30,50,50); }
+            },
+            {
+                title: "尋人啟事發布中心：特徵眼睛",
+                desc: "「只要傳輸尋人海報中【人物的雙眼區域】即可，衣服和背景可以用超低畫質過濾。」",
+                maxMem: 180,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#3a506b'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.arc(128,128,70,0,Math.PI*2); ctx.fill(); // 臉
+                    ctx.fillStyle = '#fff'; ctx.fillRect(90,110,25,15); ctx.fillRect(141,110,25,15); // 眼睛
+                    ctx.fillStyle = '#000'; ctx.fillRect(98,113,10,10); ctx.fillRect(149,113,10,10);
+                },
+                getKeyMask: (ctx) => { ctx.fillRect(80,100,96,30); }
+            },
+            {
+                title: "氣象觀測站：颱風眼結構",
+                desc: "「關注【正中央颱風眼】的結構旋轉，外圍雲系使用超低取樣即可。」",
+                maxMem: 240,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#103050'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(128,128,100,0,Math.PI*2); ctx.fill(); // 雲系
+                    ctx.fillStyle = '#103050'; ctx.beginPath(); ctx.arc(128,128,25,0,Math.PI*2); ctx.fill(); // 颱風眼
+                },
+                getKeyMask: (ctx) => { ctx.beginPath(); ctx.arc(128,128,35,0,Math.PI*2); ctx.fill(); }
+            },
+            {
+                title: "軍事情報局：雷達基地天線",
+                desc: "「我們需要確認【山頂上的雷達天線】形狀，山腳的樹林不用管。」",
+                maxMem: 210,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#87ceeb'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#2d5a27'; ctx.beginPath(); ctx.moveTo(0,256); ctx.lineTo(128,100); ctx.lineTo(256,256); ctx.fill(); // 山
+                    ctx.fillStyle = '#888'; ctx.fillRect(120,60,16,40); ctx.beginPath(); ctx.arc(128,50,25,Math.PI,0); ctx.fill(); // 天線
+                },
+                getKeyMask: (ctx) => { ctx.fillRect(98,25,60,75); }
+            },
+            {
+                title: "尋寶獵人：藏寶圖標記",
+                desc: "「地圖邊角裝飾無所謂，把所有解析度留給【右下角的紅色 X 記號】！」",
+                maxMem: 190,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#d2b48c'; ctx.fillRect(0,0,256,256);
+                    ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 10;
+                    ctx.beginPath(); ctx.moveTo(170,170); ctx.lineTo(230,230); ctx.moveTo(230,170); ctx.lineTo(170,230); ctx.stroke();
+                },
+                getKeyMask: (ctx) => { ctx.fillRect(160,160,80,80); }
+            },
+            {
+                title: "天文台：木星大紅斑",
+                desc: "「木星條紋大致呈現即可，請把所有高採樣集中在【右下角的大紅斑】。」",
+                maxMem: 230,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#050510'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#c88b3a'; ctx.beginPath(); ctx.arc(128,128,90,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#a23118'; ctx.beginPath(); ctx.ellipse(160, 160, 25, 15, 0, 0, Math.PI*2); ctx.fill(); // 紅斑
+                },
+                getKeyMask: (ctx) => { ctx.beginPath(); ctx.ellipse(160, 160, 30, 20, 0, 0, Math.PI*2); ctx.fill(); }
+            },
+            {
+                title: "晶片廠：微型電路缺損",
+                desc: "「自動檢測發現【正上方晶片腳座】可能斷路，請對該區做高解析取樣。」",
+                maxMem: 220,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#0f4222'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#d4af37'; 
+                    ctx.fillRect(50,20,156,15); ctx.fillRect(50,221,156,15); // 腳座
+                    ctx.fillStyle = '#000'; ctx.fillRect(120,20,10,15); // 斷路
+                },
+                getKeyMask: (ctx) => { ctx.fillRect(40,10,176,35); }
+            },
+            {
+                title: "美術館：名畫簽名驗證",
+                desc: "「鑑定師需要驗證【左下角的畫家落款簽名】，畫作主體只需低畫質預覽。」",
+                maxMem: 200,
+                draw: (ctx) => {
+                    let g = ctx.createLinearGradient(0,0,256,256); g.addColorStop(0,'#9c27b0'); g.addColorStop(1,'#e91e63');
+                    ctx.fillStyle = g; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#fff'; ctx.font = "italic bold 18px cursive"; ctx.fillText("Picasso 1912", 20, 230);
+                },
+                getKeyMask: (ctx) => { ctx.fillRect(10,200,140,45); }
+            }
+        ];
+
+        // 遊戲運行狀態
+        let selectedQuestions = [];
+        let currentIdx = 0;
+        let activeBrushGrid = 16; // 畫筆塗抹網格大小 (16 or 32)
+        let levelScores = [];
+        let isPlaying = false;
+
+        // Canvas Contexts
+        const targetCanvas = document.getElementById('targetCanvas');
+        const targetCtx = targetCanvas.getContext('2d');
+        const maskCanvas = document.getElementById('maskCanvas');
+        const maskCtx = maskCanvas.getContext('2d');
+        const outputCanvas = document.getElementById('outputCanvas');
+        const outputCtx = outputCanvas.getContext('2d');
+
+        // 離屏 Contexts (計算用)
+        const keyMaskCanvas = document.createElement('canvas');
+        keyMaskCanvas.width = keyMaskCanvas.height = 256;
+        const keyMaskCtx = keyMaskCanvas.getContext('2d');
+
+        // DOM 元素
+        const levelDisplay = document.getElementById('level-display');
+        const totalScoreDisplay = document.getElementById('total-score-display');
+        const clientTitle = document.getElementById('client-title');
+        const clientDesc = document.getElementById('client-desc');
+        const keyAccVal = document.getElementById('key-acc-val');
+        const keyAccBar = document.getElementById('key-acc-bar');
+        const memVal = document.getElementById('mem-val');
+        const memBar = document.getElementById('mem-bar');
+        const maxMemVal = document.getElementById('max-mem-val');
+
+        const btnBrush16 = document.getElementById('btn-brush-16');
+        const btnBrush32 = document.getElementById('btn-brush-32');
+        const btnClear = document.getElementById('btn-clear');
+        const btnSubmit = document.getElementById('btn-submit');
+
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMsg = document.getElementById('modal-msg');
+        const modalBtn = document.getElementById('modal-btn');
+        const scoreBox = document.getElementById('score-box');
+        const scoreRowsContainer = document.getElementById('score-rows-container');
+        const rankBadge = document.getElementById('rank-badge');
+
+        function initGame() {
+            // 綁定事件
+            btnBrush16.onclick = () => setBrush(16);
+            btnBrush32.onclick = () => setBrush(32);
+            btnClear.onclick = clearMask;
+            btnSubmit.onclick = submitLevel;
+            modalBtn.onclick = handleModalClick;
+
+            // 畫布塗抹事件
+            let isDrawing = false;
+            maskCanvas.onmousedown = (e) => { isDrawing = true; drawMask(e); };
+            maskCanvas.onmousemove = (e) => { if (isDrawing) drawMask(e); };
+            window.onmouseup = () => isDrawing = false;
+        }
+
+        function setBrush(grid) {
+            activeBrushGrid = grid;
+            btnBrush16.classList.toggle('active', grid === 16);
+            btnBrush32.classList.toggle('active', grid === 32);
+        }
+
+        function clearMask() {
+            maskCtx.clearRect(0, 0, 256, 256);
+            renderDigitization();
+        }
+
+        function drawMask(e) {
+            if (!isPlaying) return;
+            const rect = maskCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const step = 256 / activeBrushGrid;
+            const gx = Math.floor(x / step) * step;
+            const gy = Math.floor(y / step) * step;
+
+            maskCtx.fillStyle = 'rgba(0, 229, 255, 0.6)';
+            maskCtx.fillRect(gx, gy, step, step);
+
+            renderDigitization();
+        }
+
+        function startNewGameSession() {
+            // 從 10 題隨機抽 3 題 (10 取 3)
+            let shuffled = [...clientPool].sort(() => 0.5 - Math.random());
+            selectedQuestions = shuffled.slice(0, 3);
+            currentIdx = 0;
+            levelScores = [];
+            totalScoreDisplay.textContent = '0';
+            loadLevel(currentIdx);
+        }
+
+        function loadLevel(idx) {
+            const q = selectedQuestions[idx];
+            levelDisplay.textContent = idx + 1;
+            clientTitle.textContent = `${q.title}`;
+            clientDesc.textContent = q.desc;
+            maxMemVal.textContent = q.maxMem;
+
+            // 繪製目標圖
+            targetCtx.clearRect(0,0,256,256);
+            q.draw(targetCtx);
+
+            // 生成解答重點 Mask (離屏)
+            keyMaskCtx.fillStyle = '#000'; keyMaskCtx.fillRect(0,0,256,256);
+            keyMaskCtx.fillStyle = '#fff';
+            q.getKeyMask(keyMaskCtx);
+
+            // 清空玩家 Mask
+            clearMask();
+            isPlaying = true;
+        }
+
+        // 核心渲染：區域性取樣與量化計算
+        function renderDigitization() {
+            const q = selectedQuestions[currentIdx];
+            const origData = targetCtx.getImageData(0,0,256,256).data;
+            const userMaskData = maskCtx.getImageData(0,0,256,256).data;
+
+            outputCtx.clearRect(0,0,256,256);
+
+            // 預設全圖低畫質：8x8 網格, 1-bit (黑白)
+            // 高精細塗抹區：16x16 或 32x32 網格, 4-bit (16色)
+            let totalMemoryBits = 0;
+
+            // 基本全圖底稿 (8x8 Grid)
+            const baseGrid = 8;
+            const baseStep = 256 / baseGrid;
+
+            // 檢查哪些區域被玩家塗抹
+            for (let y = 0; y < 256; y += 8) {
+                for (let x = 0; x < 256; x += 8) {
+                    // 檢查這 8x8 區塊是否有塗抹
+                    const maskIdx = (y * 256 + x) * 4;
+                    const isHighRes = userMaskData[maskIdx + 3] > 0; // Alpha > 0 代表有塗色
+
+                    if (isHighRes) {
+                        // 高畫質區域 (16x16 網格 + 4-bit 色深)
+                        const subStep = 256 / 32;
+                        for (let sy = y; sy < y + 8; sy += subStep) {
+                            for (let sx = x; sx < x + 8; sx += subStep) {
+                                renderBlock(sx, sy, subStep, 4, origData);
+                                totalMemoryBits += 4; 
+                            }
+                        }
+                    } else {
+                        // 低畫質背景 (8x8 網格 + 1-bit 黑白)
+                        renderBlock(x, y, baseStep, 1, origData);
+                        totalMemoryBits += 1;
+                    }
+                }
+            }
+
+            // 容量計算
+            const usedBytes = Math.ceil(totalMemoryBits / 8);
+            memVal.textContent = `${usedBytes} Bytes`;
+            const memRatio = Math.min(100, (usedBytes / q.maxMem) * 100);
+            memBar.style.width = `${memRatio}%`;
+            memBar.style.backgroundColor = usedBytes > q.maxMem ? '#ff1744' : '#00e676';
+
+            // 計算重點區域還原度
+            calculateKeyAccuracy(usedBytes, q.maxMem);
+        }
+
+        function renderBlock(x, y, size, bpp, origData) {
+            const cx = Math.floor(x + size / 2);
+            const cy = Math.floor(y + size / 2);
+            const idx = (cy * 256 + cx) * 4;
+
+            let r = origData[idx], g = origData[idx+1], b = origData[idx+2];
+
+            if (bpp === 1) { // 1-bit 二值化
+                const br = 0.299 * r + 0.587 * g + 0.114 * b;
+                r = g = b = br < 128 ? 0 : 255;
+            } else { // 4-bit 簡化降採樣
+                const qStep = 255 / 3;
+                r = Math.round(r / qStep) * qStep;
+                g = Math.round(g / qStep) * qStep;
+                b = Math.round(b / qStep) * qStep;
+            }
+
+            outputCtx.fillStyle = `rgb(${r},${g},${b})`;
+            outputCtx.fillRect(x, y, size, size);
+        }
+
+        function calculateKeyAccuracy(usedBytes, maxMem) {
+            const keyMaskData = keyMaskCtx.getImageData(0,0,256,256).data;
+            const targetData = targetCtx.getImageData(0,0,256,256).data;
+            const outputData = outputCtx.getImageData(0,0,256,256).data;
+
+            let diffSum = 0;
+            let keyPixelCount = 0;
+
+            for (let i = 0; i < keyMaskData.length; i += 16) {
+                if (keyMaskData[i] > 128) { // 屬於重點特徵區域
+                    keyPixelCount++;
+                    const rD = Math.abs(targetData[i] - outputData[i]);
+                    const gD = Math.abs(targetData[i+1] - outputData[i+1]);
+                    const bD = Math.abs(targetData[i+2] - outputData[i+2]);
+                    diffSum += (rD + gD + bD) / 3;
+                }
+            }
+
+            let acc = 0;
+            if (keyPixelCount > 0) {
+                const avgDiff = diffSum / keyPixelCount;
+                acc = Math.max(0, Math.round(100 - (avgDiff / 255) * 100));
+            }
+
+            keyAccVal.textContent = `${acc}%`;
+            keyAccBar.style.width = `${acc}%`;
+            return { acc, usedBytes };
+        }
+
+        function submitLevel() {
+            if (!isPlaying) return;
+
+            const q = selectedQuestions[currentIdx];
+            const usedBytes = parseInt(memVal.textContent);
+            const keyAcc = parseInt(keyAccVal.textContent);
+
+            if (usedBytes > q.maxMem) {
+                alert(`傳輸失敗！記憶體容量超出上限 (${usedBytes} / ${q.maxMem} Bytes)`);
+                return;
+            }
+
+            // 計算本關得分 (最高 100 分) = 關鍵還原度 (70%) + 省下來的記憶體獎勵 (30%)
+            const memSavingsRatio = (q.maxMem - usedBytes) / q.maxMem;
+            const levelScore = Math.round((keyAcc * 0.7) + (memSavingsRatio * 30));
+
+            levelScores.push({ title: q.title, score: levelScore, acc: keyAcc, mem: usedBytes });
+
+            // 累加總分
+            const currentTotal = levelScores.reduce((a,b) => a + b.score, 0);
+            totalScoreDisplay.textContent = currentTotal;
+
+            if (currentIdx < 2) {
+                currentIdx++;
+                loadLevel(currentIdx);
+            } else {
+                finishGameSession();
+            }
+        }
+
+        function finishGameSession() {
+            isPlaying = false;
+            const totalScore = levelScores.reduce((a,b) => a + b.score, 0);
+
+            let rank = 'C';
+            let rankColor = '#ff1744';
+            if (totalScore >= 240) { rank = 'S'; rankColor = '#ffd700'; }
+            else if (totalScore >= 190) { rank = 'A'; rankColor = '#00e5ff'; }
+            else if (totalScore >= 140) { rank = 'B'; rankColor = '#00e676'; }
+
+            // 渲染評分結算畫面
+            scoreRowsContainer.innerHTML = levelScores.map((s, i) => `
+                <div class="score-row">
+                    <span>關卡 ${i+1}: ${s.title}</span>
+                    <strong style="color:#00e5ff">${s.score} 分</strong>
+                </div>
+            `).join('') + `
+                <hr style="border-color:#3d415a; margin: 8px 0;">
+                <div class="score-row" style="font-size:16px;">
+                    <span>總得分 (Total Score):</span>
+                    <strong style="color:#ffd700">${totalScore} / 300 pts</strong>
+                </div>
+            `;
+
+            rankBadge.textContent = `最終評級: ${rank}`;
+            rankBadge.style.color = rankColor;
+
+            scoreBox.classList.remove('hidden');
+            showModal("委託全部完成！", "感謝你的精準數位化調校，以下是客戶滿意度結算報告：", "再次挑戰");
+        }
+
+        function showModal(title, msg, btnText) {
+            modalTitle.textContent = title;
+            modalMsg.textContent = msg;
+            modalBtn.textContent = btnText;
+            modalOverlay.classList.remove('hidden');
+        }
+
+        function handleModalClick() {
+            modalOverlay.classList.add('hidden');
+            scoreBox.classList.add('hidden');
+            startNewGameSession();
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

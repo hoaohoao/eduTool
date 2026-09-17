@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素解碼師：自訂色盤與深度挑戰</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background-color: #12131c; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .game-container { background-color: #1d1e2c; border: 3px solid #3d415a; border-radius: 12px; width: 920px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3d415a; padding-bottom: 16px; margin-bottom: 16px; }
+        h1 { color: #00e5ff; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+        .status-bar { display: flex; gap: 20px; font-weight: bold; font-size: 16px; }
+        .highlight-yellow { color: #ffd700; }
+        .highlight-cyan { color: #00e5ff; }
+
+        .order-card { background: #25283b; border-left: 5px solid #00e5ff; border-radius: 6px; padding: 14px 18px; margin-bottom: 20px; }
+        .order-card h3 { color: #ff9100; font-size: 15px; margin-bottom: 6px; }
+        .order-card p { font-size: 14px; color: #d0d0d0; line-height: 1.4; }
+
+        .workspace { display: flex; gap: 20px; margin-bottom: 20px; }
+        .canvas-card { flex: 1; background: #12131c; border: 2px solid #2e3248; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; align-items: center; }
+        .canvas-card h4 { font-size: 14px; margin-bottom: 10px; color: #aaa; }
+        .canvas-wrapper { position: relative; width: 256px; height: 256px; background: #000; cursor: crosshair; }
+        canvas { display: block; image-rendering: pixelated; }
+
+        /* 控制面板 */
+        .controls-panel { background: #25283b; border-radius: 8px; padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 16px; }
+        .control-row { display: flex; align-items: center; gap: 20px; }
+        .control-row label { font-size: 14px; color: #00e5ff; font-weight: bold; width: 140px; }
+        .control-row input[type="range"] { flex: 1; cursor: pointer; }
+        
+        /* 動態自訂色盤區 */
+        .palette-container { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
+        .palette-slot { width: 32px; height: 32px; border-radius: 4px; border: 2px solid #fff; cursor: pointer; position: relative; transition: transform 0.1s; }
+        .palette-slot.active { border-color: #00e5ff; transform: scale(1.15); box-shadow: 0 0 8px #00e5ff; z-index: 2; }
+        
+        .meters-panel { background: #181a26; border-radius: 8px; padding: 14px; margin-bottom: 20px; }
+        .meter-group { margin-bottom: 10px; }
+        .meter-group:last-child { margin-bottom: 0; }
+        .meter-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+        .meter-bar-bg { height: 12px; background: #0a0b10; border-radius: 6px; overflow: hidden; }
+        .meter-bar-fill { height: 100%; width: 0%; transition: width 0.2s; }
+
+        .actions { display: flex; justify-content: flex-end; gap: 12px; }
+        .btn-action { background: #00e5ff; color: #12131c; border: none; padding: 12px 24px; font-size: 15px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn-action:hover { background: #73f0ff; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 99; }
+        .modal { background: #1d1e2c; border: 2px solid #00e5ff; border-radius: 12px; padding: 28px; text-align: center; max-width: 480px; width: 90%; }
+        .modal h2 { color: #00e5ff; margin-bottom: 12px; }
+        .modal p { color: #ccc; font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
+        .score-box { background: #12131c; border: 1px solid #3d415a; border-radius: 8px; padding: 14px; margin: 14px 0; text-align: left; }
+        .score-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+        .rank-badge { font-size: 32px; font-weight: bold; color: #ffd700; margin-top: 10px; text-align: center; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <header>
+            <h1>像素解碼師：自訂色盤與深度調校</h1>
+            <div class="status-bar">
+                <div>進度: <span id="level-display" class="highlight-yellow">1</span>/3</div>
+                <div>累計得分: <span id="total-score-display" class="highlight-cyan">0</span> pts</div>
+            </div>
+        </header>
+
+        <div class="order-card">
+            <h3 id="client-title">客戶需求單 #1</h3>
+            <p id="client-desc">載入中...</p>
+        </div>
+
+        <div class="workspace">
+            <div class="canvas-card">
+                <h4>目標原圖 (使用吸管點擊採集顏色)</h4>
+                <div class="canvas-wrapper">
+                    <canvas id="targetCanvas" width="256" height="256"></canvas>
+                </div>
+            </div>
+            <div class="canvas-card">
+                <h4>數位化輸出 (量化點陣結果)</h4>
+                <div class="canvas-wrapper">
+                    <canvas id="outputCanvas" width="256" height="256"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 遊戲控制項 -->
+        <div class="controls-panel">
+            <div class="control-row">
+                <label for="sample-slider">1. 空間取樣率：</label>
+                <input type="range" id="sample-slider" min="0" max="4" step="1" value="2">
+                <span id="sample-text" style="width: 80px; font-weight: bold;">32 x 32</span>
+            </div>
+
+            <div class="control-row">
+                <label for="bit-slider">2. 色彩深度 (Bits)：</label>
+                <input type="range" id="bit-slider" min="1" max="4" step="1" value="2">
+                <span id="bit-text" style="width: 100px; font-weight: bold;">2-bit (4 色)</span>
+            </div>
+
+            <div class="control-row">
+                <label>自訂色盤採樣：</label>
+                <div class="palette-container" id="palette-container">
+                    <!-- 色盤格子會由 JavaScript 動態生成 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="meters-panel">
+            <div class="meter-group">
+                <div class="meter-label">
+                    <span>圖像還原度 (Image Fidelity)</span>
+                    <span id="acc-val">0%</span>
+                </div>
+                <div class="meter-bar-bg">
+                    <div id="acc-bar" class="meter-bar-fill" style="background:#00e5ff;"></div>
+                </div>
+            </div>
+            <div class="meter-group">
+                <div class="meter-label">
+                    <span>傳輸容量消耗 / 上限: <span id="max-mem-val">256</span> Bytes</span>
+                    <span id="mem-val">0 Bytes</span>
+                </div>
+                <div class="meter-bar-bg">
+                    <div id="mem-bar" class="meter-bar-fill" style="background:#00e676;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="btn-submit" class="btn-action">交付客戶結算</button>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">像素解碼事務所</h2>
+            <p id="modal-msg">歡迎！請根據客戶的需求與預算上限，自由調整「取樣率」與「色盤 Bit 數 (1~4 bits)」。選擇色彩深度後，使用吸管點擊原圖精準採樣，達成最高的還原效率！</p>
+            <div id="score-box" class="score-box hidden">
+                <div id="score-rows-container"></div>
+                <div id="rank-badge" class="rank-badge">S</div>
+            </div>
+            <button id="modal-btn" class="btn-action">接單開工</button>
+        </div>
+    </div>
+
+    <script>
+        // 10 題客戶訂單資料庫 (不透露具體顏色名稱)
+        const clientPool = [
+            {
+                title: "日落攝影展：夕陽餘暉",
+                desc: "「這是一張夕陽西下的風景作品。請抓準漸層的整體氛圍，並把容量控制在 256 Bytes 以內！」",
+                maxMem: 256,
+                draw: (ctx) => {
+                    let g = ctx.createLinearGradient(0,0,0,256);
+                    g.addColorStop(0, '#ff3300'); g.addColorStop(0.4, '#ffaa00'); g.addColorStop(1, '#002266');
+                    ctx.fillStyle = g; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#000'; ctx.fillRect(0,200,256,56);
+                }
+            },
+            {
+                title: "復古遊戲公司：像素勇者",
+                desc: "「這款 8-bit 遊戲角色的主體細節相當豐富，請挑選出最具代表性的色彩進行數位化，上限 300 Bytes。」",
+                maxMem: 300,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#222'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#ffcc99'; ctx.fillRect(96,50,64,64);
+                    ctx.fillStyle = '#cc0000'; ctx.fillRect(64,114,128,80);
+                    ctx.fillStyle = '#0066cc'; ctx.fillRect(96,120,64,100);
+                }
+            },
+            {
+                title: "植物學研究：盛開花朵",
+                desc: "「請務必辨識出這朵花的花瓣、花心與背景特徵，並完成傳輸，容量上限 220 Bytes。」",
+                maxMem: 220,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#87ceeb'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#228b22'; ctx.fillRect(120,120,16,136);
+                    ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(128,100,60,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#5c4033'; ctx.beginPath(); ctx.arc(128,100,30,0,Math.PI*2); ctx.fill();
+                }
+            },
+            {
+                title: "賽博朋克夜店：霓虹招牌",
+                desc: "「這張迷幻風格的招牌照片包含多層次色彩，請精準選色呈現迷幻感，上限 280 Bytes！」",
+                maxMem: 280,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#050510'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#4a0e4e'; ctx.fillRect(40,40,176,176);
+                    ctx.fillStyle = '#ff007f'; ctx.fillRect(70,70,116,116);
+                    ctx.fillStyle = '#00f0ff'; ctx.fillRect(100,100,56,56);
+                }
+            },
+            {
+                title: "交通安全局：號誌燈檢測",
+                desc: "「號誌燈上的指示狀態至關重要，色盤千萬不能出錯，否則會影響判讀！上限 180 Bytes。」",
+                maxMem: 180,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#aaa'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#111'; ctx.fillRect(88,20,80,216);
+                    ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.arc(128,60,25,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#ffff00'; ctx.beginPath(); ctx.arc(128,128,25,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#00ff00'; ctx.beginPath(); ctx.arc(128,196,25,0,Math.PI*2); ctx.fill();
+                }
+            },
+            {
+                title: "海洋極地組：極地生態",
+                desc: "「我們需要辨識出畫面中的冰山與生物特徵，請妥善配置色盤與解析度，上限 240 Bytes。」",
+                maxMem: 240,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#a0e0ff'; ctx.fillRect(0,0,256,128);
+                    ctx.fillStyle = '#003366'; ctx.fillRect(0,128,256,128);
+                    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(40,128); ctx.lineTo(90,40); ctx.lineTo(140,128); ctx.fill();
+                    ctx.fillStyle = '#334455'; ctx.beginPath(); ctx.ellipse(180, 180, 50, 20, 0, 0, Math.PI*2); ctx.fill();
+                }
+            },
+            {
+                title: "火山監測站：熱能觀測",
+                desc: "「畫面記錄了地表噴發的危險區域，請利用色盤抓出最關鍵的熱度分布，上限 210 Bytes。」",
+                maxMem: 210,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#11111d'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#443333'; ctx.beginPath(); ctx.moveTo(0,256); ctx.lineTo(128,100); ctx.lineTo(256,256); ctx.fill();
+                    ctx.strokeStyle = '#ff3300'; ctx.lineWidth = 12; ctx.beginPath(); ctx.moveTo(128,100); ctx.lineTo(100,200); ctx.stroke();
+                    ctx.fillStyle = '#ffcc00'; ctx.beginPath(); ctx.arc(128,80,15,0,Math.PI*2); ctx.fill();
+                }
+            },
+            {
+                title: "食品檢驗局：水果剖面",
+                desc: "「這張水果剖面圖有多重結構，請調校出能清晰分辨果肉與外皮的色盤，上限 200 Bytes。」",
+                maxMem: 200,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#f0f0f0'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#008000'; ctx.beginPath(); ctx.arc(128,128,100,0,Math.PI); ctx.fill();
+                    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(128,128,88,0,Math.PI); ctx.fill();
+                    ctx.fillStyle = '#ff2233'; ctx.beginPath(); ctx.arc(128,128,80,0,Math.PI); ctx.fill();
+                    ctx.fillStyle = '#000000'; ctx.fillRect(100,160,8,12); ctx.fillRect(150,160,8,12);
+                }
+            },
+            {
+                title: "太空總署：星球觀測",
+                desc: "「太空望遠鏡拍下了這張天體影像，請完美保留主體與宇宙背景的輪廓，上限 260 Bytes。」",
+                maxMem: 260,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#020208'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#1e90ff'; ctx.beginPath(); ctx.arc(100,140,70,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#2e8b57'; ctx.beginPath(); ctx.arc(90,130,30,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#cccccc'; ctx.beginPath(); ctx.arc(200,60,20,0,Math.PI*2); ctx.fill();
+                }
+            },
+            {
+                title: "時尚雜誌：人像寫真",
+                desc: "「模特兒時尚寫真，著重於面部五官與配飾的立體感與對比度，上限 230 Bytes。」",
+                maxMem: 230,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#f5d6ba'; ctx.beginPath(); ctx.arc(128,128,90,0,Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#111111'; ctx.fillRect(68,90,120,35);
+                    ctx.fillStyle = '#d6113a'; ctx.beginPath(); ctx.ellipse(128, 175, 25, 12, 0, 0, Math.PI*2); ctx.fill();
+                }
+            }
+        ];
+
+        const sampleRates = [16, 32, 64, 96, 128];
+        let customPalette = [];
+        let activeSlotIndex = 0;
+
+        let selectedQuestions = [];
+        let currentIdx = 0;
+        let levelScores = [];
+        let isPlaying = false;
+
+        const targetCanvas = document.getElementById('targetCanvas');
+        const targetCtx = targetCanvas.getContext('2d');
+        const outputCanvas = document.getElementById('outputCanvas');
+        const outputCtx = outputCanvas.getContext('2d');
+
+        const sampleSlider = document.getElementById('sample-slider');
+        const sampleText = document.getElementById('sample-text');
+        const bitSlider = document.getElementById('bit-slider');
+        const bitText = document.getElementById('bit-text');
+        const paletteContainer = document.getElementById('palette-container');
+
+        const accVal = document.getElementById('acc-val');
+        const accBar = document.getElementById('acc-bar');
+        const memVal = document.getElementById('mem-val');
+        const memBar = document.getElementById('mem-bar');
+        const maxMemVal = document.getElementById('max-mem-val');
+
+        const levelDisplay = document.getElementById('level-display');
+        const totalScoreDisplay = document.getElementById('total-score-display');
+        const clientTitle = document.getElementById('client-title');
+        const clientDesc = document.getElementById('client-desc');
+
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMsg = document.getElementById('modal-msg');
+        const modalBtn = document.getElementById('modal-btn');
+        const scoreBox = document.getElementById('score-box');
+        const scoreRowsContainer = document.getElementById('score-rows-container');
+        const rankBadge = document.getElementById('rank-badge');
+
+        function initGame() {
+            sampleSlider.oninput = renderDigitization;
+            bitSlider.oninput = () => {
+                rebuildPaletteSlots();
+                renderDigitization();
+            };
+            document.getElementById('btn-submit').onclick = submitLevel;
+            modalBtn.onclick = handleModalClick;
+
+            // 原圖吸管點擊事件
+            targetCanvas.onclick = (e) => {
+                if (!isPlaying || customPalette.length === 0) return;
+                const rect = targetCanvas.getBoundingClientRect();
+                const x = Math.floor(e.clientX - rect.left);
+                const y = Math.floor(e.clientY - rect.top);
+
+                const pixel = targetCtx.getImageData(x, y, 1, 1).data;
+                const hex = `#${((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1)}`;
+
+                customPalette[activeSlotIndex] = hex;
+                const slotElem = document.getElementById(`slot-${activeSlotIndex}`);
+                if (slotElem) slotElem.style.backgroundColor = hex;
+
+                renderDigitization();
+            };
+        }
+
+        // 根據 Bit 數動態重建色盤 UI (1bit=2色, 2bit=4色, 3bit=8色, 4bit=16色)
+        function rebuildPaletteSlots() {
+            const bpp = parseInt(bitSlider.value);
+            const numColors = Math.pow(2, bpp);
+            bitText.textContent = `${bpp}-bit (${numColors} 色)`;
+
+            paletteContainer.innerHTML = '';
+            let newPalette = [];
+
+            for (let i = 0; i < numColors; i++) {
+                // 如果舊色盤有顏色則保留，沒有則給予預設灰階
+                let color = (customPalette[i]) ? customPalette[i] : getDefaultColor(i, numColors);
+                newPalette.push(color);
+
+                const slot = document.createElement('div');
+                slot.className = `palette-slot ${i === 0 ? 'active' : ''}`;
+                slot.id = `slot-${i}`;
+                slot.style.backgroundColor = color;
+                slot.onclick = () => selectSlot(i);
+                paletteContainer.appendChild(slot);
+            }
+
+            customPalette = newPalette;
+            activeSlotIndex = 0;
+        }
+
+        function getDefaultColor(index, total) {
+            const val = Math.round((index / (total - 1 || 1)) * 255);
+            const hexVal = val.toString(16).padStart(2, '0');
+            return `#${hexVal}${hexVal}${hexVal}`;
+        }
+
+        function selectSlot(idx) {
+            activeSlotIndex = idx;
+            const slots = paletteContainer.children;
+            for (let i = 0; i < slots.length; i++) {
+                slots[i].classList.toggle('active', i === idx);
+            }
+        }
+
+        function startNewGameSession() {
+            let shuffled = [...clientPool].sort(() => 0.5 - Math.random());
+            selectedQuestions = shuffled.slice(0, 3);
+            currentIdx = 0;
+            levelScores = [];
+            totalScoreDisplay.textContent = '0';
+            loadLevel(currentIdx);
+        }
+
+        function loadLevel(idx) {
+            const q = selectedQuestions[idx];
+            levelDisplay.textContent = idx + 1;
+            clientTitle.textContent = `${q.title}`;
+            clientDesc.textContent = q.desc;
+            maxMemVal.textContent = q.maxMem;
+
+            targetCtx.clearRect(0,0,256,256);
+            q.draw(targetCtx);
+
+            // 重置色盤 UI
+            customPalette = [];
+            rebuildPaletteSlots();
+
+            isPlaying = true;
+            renderDigitization();
+        }
+
+        // 核心渲染：根據色深與取樣率進行量化
+        function renderDigitization() {
+            const gridDim = sampleRates[sampleSlider.value];
+            sampleText.textContent = `${gridDim} x ${gridDim}`;
+
+            const bpp = parseInt(bitSlider.value);
+            const totalBits = gridDim * gridDim * bpp;
+            const usedBytes = Math.ceil(totalBits / 8);
+
+            memVal.textContent = `${usedBytes} Bytes`;
+            const q = selectedQuestions[currentIdx];
+            const memRatio = Math.min(100, (usedBytes / q.maxMem) * 100);
+            memBar.style.width = `${memRatio}%`;
+            memBar.style.backgroundColor = usedBytes > q.maxMem ? '#ff1744' : '#00e676';
+
+            // 數值化色盤
+            const paletteRGB = customPalette.map(hexToRgb);
+
+            outputCtx.clearRect(0,0,256,256);
+            const step = 256 / gridDim;
+            const origData = targetCtx.getImageData(0,0,256,256).data;
+
+            for (let y = 0; y < gridDim; y++) {
+                for (let x = 0; x < gridDim; x++) {
+                    const cx = Math.floor(x * step + step / 2);
+                    const cy = Math.floor(y * step + step / 2);
+                    const idx = (cy * 256 + cx) * 4;
+
+                    const r = origData[idx];
+                    const g = origData[idx+1];
+                    const b = origData[idx+2];
+
+                    // 尋找歐幾里得距離最近的顏色
+                    let closestColor = paletteRGB[0] || {r:0, g:0, b:0};
+                    let minDistance = Infinity;
+
+                    for (let c of paletteRGB) {
+                        const dist = Math.pow(r - c.r, 2) + Math.pow(g - c.g, 2) + Math.pow(b - c.b, 2);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestColor = c;
+                        }
+                    }
+
+                    outputCtx.fillStyle = `rgb(${closestColor.r},${closestColor.g},${closestColor.b})`;
+                    outputCtx.fillRect(x * step, y * step, step, step);
+                }
+            }
+
+            calculateAccuracy();
+        }
+
+        function calculateAccuracy() {
+            const targetData = targetCtx.getImageData(0,0,256,256).data;
+            const outputData = outputCtx.getImageData(0,0,256,256).data;
+
+            let diffSum = 0;
+            const totalPixels = 256 * 256;
+
+            for (let i = 0; i < targetData.length; i += 16) {
+                const rDiff = Math.abs(targetData[i] - outputData[i]);
+                const gDiff = Math.abs(targetData[i+1] - outputData[i+1]);
+                const bDiff = Math.abs(targetData[i+2] - outputData[i+2]);
+                diffSum += (rDiff + gDiff + bDiff) / 3;
+            }
+
+            const avgDiff = diffSum / (totalPixels / 4);
+            let accuracy = Math.max(0, Math.round(100 - (avgDiff / 255) * 100));
+
+            accVal.textContent = `${accuracy}%`;
+            accBar.style.width = `${accuracy}%`;
+        }
+
+        function submitLevel() {
+            if (!isPlaying) return;
+
+            const q = selectedQuestions[currentIdx];
+            const usedBytes = parseInt(memVal.textContent);
+            const accuracy = parseInt(accVal.textContent);
+
+            if (usedBytes > q.maxMem) {
+                alert(`傳輸失敗！記憶體超出預算 (${usedBytes} / ${q.maxMem} Bytes)`);
+                return;
+            }
+
+            const memBonus = Math.round(((q.maxMem - usedBytes) / q.maxMem) * 20);
+            const levelScore = Math.round(accuracy * 0.8) + memBonus;
+
+            levelScores.push({ title: q.title, score: levelScore, acc: accuracy, mem: usedBytes });
+
+            const currentTotal = levelScores.reduce((a,b) => a + b.score, 0);
+            totalScoreDisplay.textContent = currentTotal;
+
+            if (currentIdx < 2) {
+                currentIdx++;
+                loadLevel(currentIdx);
+            } else {
+                finishGameSession();
+            }
+        }
+
+        function finishGameSession() {
+            isPlaying = false;
+            const totalScore = levelScores.reduce((a,b) => a + b.score, 0);
+
+            let rank = 'C';
+            let rankColor = '#ff1744';
+            if (totalScore >= 240) { rank = 'S'; rankColor = '#ffd700'; }
+            else if (totalScore >= 190) { rank = 'A'; rankColor = '#00e5ff'; }
+            else if (totalScore >= 140) { rank = 'B'; rankColor = '#00e676'; }
+
+            scoreRowsContainer.innerHTML = levelScores.map((s, i) => `
+                <div class="score-row">
+                    <span>關卡 ${i+1}: ${s.title}</span>
+                    <strong style="color:#00e5ff">${s.score} 分 (${s.acc}%)</strong>
+                </div>
+            `).join('') + `
+                <hr style="border-color:#3d415a; margin: 8px 0;">
+                <div class="score-row" style="font-size:16px;">
+                    <span>總得分 (Total Score):</span>
+                    <strong style="color:#ffd700">${totalScore} / 300 pts</strong>
+                </div>
+            `;
+
+            rankBadge.textContent = `最終評級: ${rank}`;
+            rankBadge.style.color = rankColor;
+
+            scoreBox.classList.remove('hidden');
+            showModal("委託全部完成！", "色盤與容量調校能力極佳！以下是你的最終結算報告：", "再次挑戰");
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        }
+
+        function showModal(title, msg, btnText) {
+            modalTitle.textContent = title;
+            modalMsg.textContent = msg;
+            modalBtn.textContent = btnText;
+            modalOverlay.classList.remove('hidden');
+        }
+
+        function handleModalClick() {
+            modalOverlay.classList.add('hidden');
+            scoreBox.classList.add('hidden');
+            startNewGameSession();
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

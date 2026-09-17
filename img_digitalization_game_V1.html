@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Heist: 像素神偷 (圖片數位化解謎遊戲)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: #1a1a24;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            background-color: #252836;
+            border: 4px solid #3b3f54;
+            border-radius: 12px;
+            width: 900px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #3b3f54;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #00e5ff;
+            font-size: 24px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            font-weight: bold;
+        }
+
+        .timer {
+            color: #ff5252;
+            font-size: 18px;
+        }
+
+        .level-info {
+            color: #ffd700;
+            font-size: 18px;
+        }
+
+        .workspace {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .canvas-card {
+            flex: 1;
+            background: #14151e;
+            border: 2px solid #2e3248;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .canvas-card h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #aaa;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 256px;
+            height: 256px;
+            background-color: #000;
+            border: 2px solid #444;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            display: block;
+        }
+
+        .meters-panel {
+            background: #1e212d;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .meter-group {
+            margin-bottom: 12px;
+        }
+
+        .meter-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .meter-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .meter-bar-bg {
+            height: 16px;
+            background: #10121a;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        .meter-bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.2s, background-color 0.2s;
+        }
+
+        .controls-panel {
+            display: flex;
+            gap: 20px;
+            background: #1e212d;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .control-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #00e5ff;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: #00e5ff;
+            color: #1a1a24;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: #80d8ff;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99;
+        }
+
+        .modal {
+            background: #252836;
+            border: 2px solid #00e5ff;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            max-width: 460px;
+            width: 90%;
+        }
+
+        .modal h2 {
+            color: #00e5ff;
+            margin-bottom: 12px;
+        }
+
+        .modal p {
+            margin-bottom: 16px;
+            line-height: 1.5;
+            color: #ccc;
+        }
+
+        .score-box {
+            background: #14151e;
+            border: 1px solid #3b3f54;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            text-align: left;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .score-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .rank-badge {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffd700;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <header>
+            <h1>Pixel Heist: 圖像數位化戰術</h1>
+            <div class="status-bar">
+                <div class="level-info">關卡: <span id="level-display">1</span>/3</div>
+                <div class="timer">時間: <span id="time-display">45</span>s</div>
+            </div>
+        </header>
+
+        <!-- 畫布比較區 -->
+        <div class="workspace">
+            <div class="canvas-card">
+                <h3>目標圖像 (連續訊號 / 原圖)</h3>
+                <div class="canvas-wrapper">
+                    <canvas id="targetCanvas" width="256" height="256"></canvas>
+                </div>
+            </div>
+            <div class="canvas-card">
+                <h3>數位化輸出 (離散訊號)</h3>
+                <div class="canvas-wrapper">
+                    <canvas id="outputCanvas" width="256" height="256"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 數據指標儀表板 -->
+        <div class="meters-panel">
+            <div class="meter-group">
+                <div class="meter-label">
+                    <span>圖像還原度 (Visual Accuracy) / 目標: <span id="target-acc-display">60</span>%</span>
+                    <span id="accuracy-value">0%</span>
+                </div>
+                <div class="meter-bar-bg">
+                    <div id="accuracy-bar" class="meter-bar-fill" style="background-color: #ff1744;"></div>
+                </div>
+            </div>
+
+            <div class="meter-group">
+                <div class="meter-label">
+                    <span>容量消耗 (Memory Usage) / 預算上限: <span id="budget-limit">--</span> Bytes</span>
+                    <span id="memory-value">0 Bytes</span>
+                </div>
+                <div class="meter-bar-bg">
+                    <div id="memory-bar" class="meter-bar-fill" style="background-color: #00e676;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 遊戲控制項 (取樣與量化) -->
+        <div class="controls-panel">
+            <div class="control-group">
+                <label for="sampling-slider">1. 空間取樣率 (Resolution / Grid Size)</label>
+                <input type="range" id="sampling-slider" min="0" max="4" step="1" value="2">
+                <div class="meter-label">
+                    <span>像素網格: <strong id="sampling-val-text">16 x 16</strong></span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="quant-slider">2. 色彩量化階數 (Color Depth / Bit Rate)</label>
+                <input type="range" id="quant-slider" min="0" max="3" step="1" value="0">
+                <div class="meter-label">
+                    <span>色彩深度: <strong id="quant-val-text">1-bit (2 色)</strong></span>
+                </div>
+            </div>
+
+            <button id="submit-btn" class="btn">發送數位訊號</button>
+        </div>
+    </div>
+
+    <!-- 遊戲彈窗 (說明與結算) -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">像素神偷任務</h2>
+            <p id="modal-msg">黑客！你的任務是在**不超出傳輸頻寬（記憶體）**的限制下，調整「取樣率」與「色彩量化」，將目標影像還原至指定標準並順利傳輸！</p>
+            
+            <div id="score-box" class="score-box hidden">
+                <div class="score-row">
+                    <span>平均還原度 (Avg Accuracy):</span>
+                    <strong id="avg-acc" style="color: #00e5ff;">0%</strong>
+                </div>
+                <div class="score-row">
+                    <span>總傳輸大小 (Total Memory):</span>
+                    <strong id="total-mem" style="color: #00e676;">0 Bytes</strong>
+                </div>
+                <div class="score-row">
+                    <span>總記憶體預算上限:</span>
+                    <span id="max-mem-budget">1152 Bytes</span>
+                </div>
+                <div id="rank-badge" class="rank-badge">評級: S</div>
+            </div>
+
+            <button id="modal-btn" class="btn">開始任務</button>
+        </div>
+    </div>
+
+    <script>
+        // 關卡資料庫
+        const levels = [
+            {
+                name: "任務 1：傳奇魔王堡壘",
+                maxMemory: 256,
+                targetAccuracy: 60,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#87CEEB'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#228B22'; ctx.fillRect(0,180,256,76);
+                    ctx.fillStyle = '#8B4513'; ctx.fillRect(80,80,96,100);
+                    ctx.fillStyle = '#FF0000'; ctx.fillRect(60,50,40,40); ctx.fillRect(150,50,40,40);
+                    ctx.fillStyle = '#FFFF00'; ctx.fillRect(115,130,26,50);
+                }
+            },
+            {
+                name: "任務 2：日落漸層海灘",
+                maxMemory: 384,
+                targetAccuracy: 70,
+                draw: (ctx) => {
+                    let grad = ctx.createLinearGradient(0,0,0,256);
+                    grad.addColorStop(0, '#FF4500');
+                    grad.addColorStop(0.5, '#FFD700');
+                    grad.addColorStop(1, '#4169E1');
+                    ctx.fillStyle = grad; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#FF6347'; ctx.beginPath(); ctx.arc(128,140,40,0,Math.PI*2); ctx.fill();
+                }
+            },
+            {
+                name: "任務 3：秘密機密晶片",
+                maxMemory: 512,
+                targetAccuracy: 80,
+                draw: (ctx) => {
+                    ctx.fillStyle = '#052b14'; ctx.fillRect(0,0,256,256);
+                    ctx.fillStyle = '#00ff66'; 
+                    for(let i=20; i<240; i+=30) {
+                        ctx.fillRect(i, 20, 10, 216);
+                        ctx.fillRect(20, i, 216, 10);
+                    }
+                    ctx.fillStyle = '#ff0055'; ctx.fillRect(96,96,64,64);
+                }
+            }
+        ];
+
+        // 參數對照表
+        const sampleRates = [8, 16, 32, 64, 128];
+        const quantBits = [1, 2, 4, 8];
+        const quantColors = [2, 4, 16, 256];
+
+        // 遊戲狀態與成績紀錄
+        let currentLevel = 0;
+        let timeLeft = 45;
+        let timerInterval = null;
+        let isPlaying = false;
+        let gameResults = []; // 儲存各關卡紀錄 { accuracy, memory }
+
+        // DOM 元素
+        const targetCanvas = document.getElementById('targetCanvas');
+        const targetCtx = targetCanvas.getContext('2d');
+        const outputCanvas = document.getElementById('outputCanvas');
+        const outputCtx = outputCanvas.getContext('2d');
+        
+        const samplingSlider = document.getElementById('sampling-slider');
+        const quantSlider = document.getElementById('quant-slider');
+        const samplingText = document.getElementById('sampling-val-text');
+        const quantText = document.getElementById('quant-val-text');
+        
+        const accuracyVal = document.getElementById('accuracy-value');
+        const accuracyBar = document.getElementById('accuracy-bar');
+        const memoryVal = document.getElementById('memory-value');
+        const memoryBar = document.getElementById('memory-bar');
+        const budgetLimit = document.getElementById('budget-limit');
+        const targetAccDisplay = document.getElementById('target-acc-display');
+        const timerDisplay = document.getElementById('time-display');
+        const levelDisplay = document.getElementById('level-display');
+
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMsg = document.getElementById('modal-msg');
+        const modalBtn = document.getElementById('modal-btn');
+        const submitBtn = document.getElementById('submit-btn');
+
+        const scoreBox = document.getElementById('score-box');
+        const avgAccText = document.getElementById('avg-acc');
+        const totalMemText = document.getElementById('total-mem');
+        const rankBadge = document.getElementById('rank-badge');
+
+        function initGame() {
+            samplingSlider.addEventListener('input', updateDigitization);
+            quantSlider.addEventListener('input', updateDigitization);
+            submitBtn.addEventListener('click', checkWinCondition);
+            modalBtn.addEventListener('click', closeModalAndStart);
+        }
+
+        function loadLevel(lvlIdx) {
+            currentLevel = lvlIdx;
+            levelDisplay.textContent = currentLevel + 1;
+            budgetLimit.textContent = levels[currentLevel].maxMemory;
+            targetAccDisplay.textContent = levels[currentLevel].targetAccuracy;
+            
+            targetCtx.clearRect(0,0,256,256);
+            levels[currentLevel].draw(targetCtx);
+
+            timeLeft = 45;
+            timerDisplay.textContent = timeLeft;
+            updateDigitization();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    showModal("失敗！", "時間到！數據傳輸失敗，你被治安警報發現了！", "重新開始", false);
+                }
+            }, 1000);
+        }
+
+        function updateDigitization() {
+            const gridDim = sampleRates[samplingSlider.value];
+            const bpp = quantBits[quantSlider.value];
+            const colorsCount = quantColors[quantSlider.value];
+
+            samplingText.textContent = `${gridDim} x ${gridDim}`;
+            quantText.textContent = `${bpp}-bit (${colorsCount} 色)`;
+
+            const memoryBytes = Math.ceil((gridDim * gridDim * bpp) / 8);
+            memoryVal.textContent = `${memoryBytes} Bytes`;
+
+            const maxMem = levels[currentLevel].maxMemory;
+            const memPercent = Math.min(100, (memoryBytes / maxMem) * 100);
+            memoryBar.style.width = `${memPercent}%`;
+            memoryBar.style.backgroundColor = memoryBytes > maxMem ? '#ff1744' : '#00e676';
+
+            outputCtx.clearRect(0,0,256,256);
+            const step = 256 / gridDim;
+            const origData = targetCtx.getImageData(0,0,256,256).data;
+
+            for (let y = 0; y < gridDim; y++) {
+                for (let x = 0; x < gridDim; x++) {
+                    const cx = Math.floor(x * step + step / 2);
+                    const cy = Math.floor(y * step + step / 2);
+                    const index = (cy * 256 + cx) * 4;
+
+                    let r = origData[index];
+                    let g = origData[index + 1];
+                    let b = origData[index + 2];
+
+                    if (bpp === 1) {
+                        const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+                        const val = brightness < 128 ? 0 : 255;
+                        r = g = b = val;
+                    } else if (bpp === 2) {
+                        const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+                        const stepVal = 255 / 3;
+                        const val = Math.round(brightness / stepVal) * stepVal;
+                        r = g = b = val;
+                    } else {
+                        const levelsPerChannel = bpp === 4 ? 2 : 6;
+                        const qStep = 255 / (levelsPerChannel - 1);
+                        r = Math.round(r / qStep) * qStep;
+                        g = Math.round(g / qStep) * qStep;
+                        b = Math.round(b / qStep) * qStep;
+                    }
+
+                    outputCtx.fillStyle = `rgb(${r},${g},${b})`;
+                    outputCtx.fillRect(x * step, y * step, step, step);
+                }
+            }
+
+            calculateAccuracy();
+        }
+
+        function calculateAccuracy() {
+            const targetData = targetCtx.getImageData(0,0,256,256).data;
+            const outputData = outputCtx.getImageData(0,0,256,256).data;
+
+            let diffSum = 0;
+            const totalPixels = 256 * 256;
+
+            for (let i = 0; i < targetData.length; i += 16) {
+                const rDiff = Math.abs(targetData[i] - outputData[i]);
+                const gDiff = Math.abs(targetData[i+1] - outputData[i+1]);
+                const bDiff = Math.abs(targetData[i+2] - outputData[i+2]);
+                diffSum += (rDiff + gDiff + bDiff) / 3;
+            }
+
+            const avgDiff = diffSum / (totalPixels / 4);
+            let accuracy = Math.max(0, Math.round(100 - (avgDiff / 255) * 100));
+
+            accuracyVal.textContent = `${accuracy}%`;
+            accuracyBar.style.width = `${accuracy}%`;
+            accuracyBar.style.backgroundColor = accuracy >= levels[currentLevel].targetAccuracy ? '#00e5ff' : '#ff9100';
+        }
+
+        function checkWinCondition() {
+            if (!isPlaying) return;
+
+            const gridDim = sampleRates[samplingSlider.value];
+            const bpp = quantBits[quantSlider.value];
+            const memoryBytes = Math.ceil((gridDim * gridDim * bpp) / 8);
+            const currentAcc = parseInt(accuracyVal.textContent);
+            const targetAcc = levels[currentLevel].targetAccuracy;
+            const maxMem = levels[currentLevel].maxMemory;
+
+            if (memoryBytes > maxMem) {
+                alert(`記憶體超出預算！(上限 ${maxMem} Bytes, 目前使用 ${memoryBytes} Bytes)`);
+                return;
+            }
+
+            if (currentAcc < targetAcc) {
+                alert(`還原度不足！目標需達到 ${targetAcc}%，目前僅 ${currentAcc}%`);
+                return;
+            }
+
+            // 紀錄該關卡成績
+            gameResults.push({ accuracy: currentAcc, memory: memoryBytes });
+
+            clearInterval(timerInterval);
+
+            if (currentLevel < levels.length - 1) {
+                showModal(`過關成功！`, `你以 ${memoryBytes} Bytes 成功還原了 ${currentAcc}% 的圖像數據！準備進入下一關。`, "下一關", false);
+                currentLevel++;
+            } else {
+                // 三關全部結束，計算總評分
+                calculateFinalRank();
+            }
+        }
+
+        function calculateFinalRank() {
+            const sumAcc = gameResults.reduce((acc, curr) => acc + curr.accuracy, 0);
+            const avgAcc = Math.round(sumAcc / gameResults.length);
+
+            const totalMem = gameResults.reduce((acc, curr) => acc + curr.memory, 0);
+            const totalMaxMem = levels.reduce((acc, curr) => acc + curr.maxMemory, 0);
+
+            const memoryRatio = totalMem / totalMaxMem; // 容量使用率 (越低代表壓縮越高效)
+
+            let rank = 'C';
+            let rankColor = '#ff1744';
+            let title = '數據新手 (Data Novice)';
+
+            if (avgAcc >= 80 && memoryRatio <= 0.6) {
+                rank = 'S';
+                rankColor = '#ffd700';
+                title = '極致壓縮神偷 (Master Heist)';
+            } else if (avgAcc >= 75 && memoryRatio <= 0.8) {
+                rank = 'A';
+                rankColor = '#00e5ff';
+                title = '高級數位工程師 (Senior Engineer)';
+            } else if (avgAcc >= 65) {
+                rank = 'B';
+                rankColor = '#00e676';
+                title = '合格數據傳輸員 (Qualified Operator)';
+            }
+
+            avgAccText.textContent = `${avgAcc}%`;
+            totalMemText.textContent = `${totalMem} Bytes`;
+            rankBadge.textContent = `評級: ${rank} - ${title}`;
+            rankBadge.style.color = rankColor;
+
+            showModal(`全關卡通關！`, `恭喜你完成了所有數位傳輸任務！以下是你的戰術結算報告：`, "再玩一次", true);
+            currentLevel = 0;
+            gameResults = []; // 重置成績
+        }
+
+        function showModal(title, msg, btnText, showScore = false) {
+            modalTitle.textContent = title;
+            modalMsg.textContent = msg;
+            modalBtn.textContent = btnText;
+            
+            if (showScore) {
+                scoreBox.classList.remove('hidden');
+            } else {
+                scoreBox.classList.add('hidden');
+            }
+
+            modalOverlay.classList.remove('hidden');
+            isPlaying = false;
+        }
+
+        function closeModalAndStart() {
+            modalOverlay.classList.add('hidden');
+            isPlaying = true;
+            loadLevel(currentLevel);
+            startTimer();
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
