@@ -363,6 +363,8 @@
         { bg: '#f39c12', border: '#d68910' }  // 琥珀黃
     ];
 
+    let audioCtx = null; 
+
     let wordPool = [];
     let activeWords = [];
     let landedBlocks = [];
@@ -404,7 +406,36 @@
 
     const UPLOAD_COOLDOWN_SECONDS = 30;
 
-    // 計算當前難度等級 (修正：依據遊戲開始時間計算，不受 isPlaying 開關影響)
+    function playEliminateSound() {
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const now = audioCtx.currentTime;
+            
+            const osc1 = audioCtx.createOscillator();
+            const gain1 = audioCtx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(1046.5, now);
+            osc1.frequency.exponentialRampToValueAtTime(1318.5, now + 0.08); 
+
+            gain1.gain.setValueAtTime(0.3, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+
+            osc1.start(now);
+            osc1.stop(now + 0.12);
+        } catch (e) {
+            console.error('Audio Play Error:', e);
+        }
+    }
+
     function getCurrentLevel() {
         if (!startTime) return 1;
         const elapsedSeconds = (Date.now() - startTime) / 1000;
@@ -555,6 +586,44 @@
         }
     }
 
+    // 計算最佳生成位置 (盡量避開目前畫面上活動中的方塊)
+    function findBestXPosition(width) {
+        const maxX = gameArea.clientWidth - width - 10;
+        const minX = 10;
+
+        // 如果目前沒有活動方塊，直接隨機生成
+        if (activeWords.length === 0) {
+            return Math.max(minX, Math.floor(Math.random() * maxX));
+        }
+
+        let bestX = minX;
+        let maxMinDistance = -1;
+
+        // 採樣 20 個候選 X 位置，尋找與現有方塊最小距離最大者
+        for (let i = 0; i < 20; i++) {
+            const candidateX = Math.floor(minX + Math.random() * (maxX - minX));
+            let minDistanceForCandidate = Infinity;
+
+            for (const activeObj of activeWords) {
+                // 計算候選方塊與現有活動方塊中心點的水平距離
+                const candidateCenter = candidateX + width / 2;
+                const activeCenter = activeObj.x + activeObj.width / 2;
+                const dist = Math.abs(candidateCenter - activeCenter);
+
+                if (dist < minDistanceForCandidate) {
+                    minDistanceForCandidate = dist;
+                }
+            }
+
+            if (minDistanceForCandidate > maxMinDistance) {
+                maxMinDistance = minDistanceForCandidate;
+                bestX = candidateX;
+            }
+        }
+
+        return bestX;
+    }
+
     async function spawnWord() {
         if (!isPlaying) return;
         
@@ -568,10 +637,20 @@
             await fetchMoreWords();
         }
 
+        const maxWordLength = currentLevel + 4;
         const existingFirstChars = new Set(activeWords.map(obj => obj.word[0]));
-        let foundIndex = wordPool.findIndex(word => !existingFirstChars.has(word[0]));
+        
+        let foundIndex = wordPool.findIndex(word => 
+            !existingFirstChars.has(word[0]) && word.length <= maxWordLength
+        );
 
-        if (foundIndex === -1) return;
+        if (foundIndex === -1) {
+            await fetchMoreWords();
+            foundIndex = wordPool.findIndex(word => 
+                !existingFirstChars.has(word[0]) && word.length <= maxWordLength
+            );
+            if (foundIndex === -1) return;
+        }
 
         const usedColorIndices = new Set(activeWords.map(obj => obj.colorIndex));
         const availableColorIndices = BLOCK_COLOR_PALETTE
@@ -586,11 +665,11 @@
         }
 
         const colorStyle = BLOCK_COLOR_PALETTE[chosenColorIndex];
-
         const word = wordPool.splice(foundIndex, 1)[0];
         const width = Math.max(70, word.length * 15 + 24); 
-        const maxX = gameArea.clientWidth - width - 10;
-        const x = Math.max(10, Math.floor(Math.random() * maxX));
+
+        // 呼叫算出的最佳遠離位置
+        const x = findBestXPosition(width);
 
         const wordElem = document.createElement('div');
         wordElem.className = 'falling-word';
@@ -603,8 +682,8 @@
 
         gameArea.appendChild(wordElem);
 
-        const baseSpeed = 0.12 + (currentLevel - 1) * 0.05;
-        const speed = baseSpeed + Math.random() * 0.08;
+        const baseSpeed = 0.05 + (currentLevel - 1) * 0.04;
+        const speed = baseSpeed + Math.random() * 0.05;
 
         activeWords.push({
             word: word,
@@ -736,6 +815,8 @@
     });
 
     function eliminateWord(obj) {
+        playEliminateSound();
+
         score += obj.word.length * 10;
         correctWordsCount++;
 
@@ -778,7 +859,6 @@
     }
 
     function endGame() {
-        // 先計算最高難度等級
         const finalLevel = getCurrentLevel();
 
         isPlaying = false;
