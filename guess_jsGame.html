@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幾A幾B 猜數字遊戲</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .game-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 350px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #666;
+            font-size: 14px;
+        }
+        input {
+            width: 150px;
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            letter-spacing: 4px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .message {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #d9534f;
+            height: 20px;
+        }
+        .history {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            text-align: left;
+        }
+        .history-item {
+            padding: 5px 10px;
+            border-bottom: 1px solid #f9f9f9;
+            font-family: monospace;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .success {
+            color: #4caf50;
+            font-size: 20px;
+            margin-top: 15px;
+        }
+        #restart-btn {
+            background-color: #008cba;
+            margin-top: 15px;
+            display: none;
+            width: 100%;
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>幾A幾B 猜數字</h1>
+    <p>請輸入 4 位不重複的數字 (0-9)</p>
+    
+    <div>
+        <input type="text" id="guess-input" maxlength="4" placeholder="0123" onkeydown="if(event.key==='Enter') checkGuess()">
+        <button onclick="checkGuess()" id="submit-btn">猜！</button>
+    </div>
+
+    <div class="message" id="message"></div>
+    <button onclick="initGame()" id="restart-btn">重新開始</button>
+
+    <div class="history" id="history-container">
+        <!-- 歷史紀錄會顯示在這裡 -->
+    </div>
+</div>
+
+<script>
+    let answer = [];
+    let guessCount = 0;
+    let isGameOver = false;
+
+    // 初始化遊戲，生成 4 個不重複的隨機數
+    function initGame() {
+        answer = [];
+        guessCount = 0;
+        isGameOver = false;
+        
+        // 更改寫法避免被系統截斷：從字串轉換成數字陣列
+        let numbers = "0123456789".split("").map(Number);
+        
+        for (let i = 0; i < 4; i++) {
+            let randomIndex = Math.floor(Math.random() * numbers.length);
+            answer.push(numbers[randomIndex]);
+            numbers.splice(randomIndex, 1);
+        }
+        
+        // 測試用：可以在瀏覽器主控台 (F12) 看到答案
+        console.log("祕密答案是:", answer.join(''));
+
+        // 重設網頁元素
+        document.getElementById("guess-input").value = "";
+        document.getElementById("guess-input").disabled = false;
+        document.getElementById("submit-btn").disabled = false;
+        document.getElementById("message").innerText = "";
+        document.getElementById("message").className = "message";
+        document.getElementById("restart-btn").style.display = "none";
+        document.getElementById("history-container").innerHTML = "";
+    }
+
+    // 檢查玩家輸入的猜測
+    function checkGuess() {
+        if (isGameOver) return;
+
+        let inputElement = document.getElementById("guess-input");
+        let guessStr = inputElement.value.trim();
+        let messageElement = document.getElementById("message");
+
+        // 驗證輸入格式
+        if (guessStr.length !== 4 || isNaN(guessStr)) {
+            messageElement.innerText = "請輸入剛好 4 位數字！";
+            return;
+        }
+
+        let guessArray = guessStr.split('').map(Number);
+        let hasDuplicate = guessArray.some((val, i) => guessArray.indexOf(val) !== i);
+        if (hasDuplicate) {
+            messageElement.innerText = "數字不能重複！";
+            return;
+        }
+
+        // 清空警告訊息
+        messageElement.innerText = "";
+        guessCount++;
+
+        // 計算幾 A 幾 B
+        let aCount = 0;
+        let bCount = 0;
+
+        for (let i = 0; i < 4; i++) {
+            if (guessArray[i] === answer[i]) {
+                aCount++;
+            } else if (answer.includes(guessArray[i])) {
+                bCount++;
+            }
+        }
+
+        // 新增歷史紀錄
+        let historyContainer = document.getElementById("history-container");
+        let historyItem = document.createElement("div");
+        historyItem.className = "history-item";
+        historyItem.innerHTML = `<span>第 ${guessCount} 次： ${guessStr}</span> <strong>${aCount}A${bCount}B</strong>`;
+        historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+
+        // 清空輸入框並聚焦
+        inputElement.value = "";
+        inputElement.focus();
+
+        // 判斷是否獲勝
+        if (aCount === 4) {
+            messageElement.innerText = `🎉 恭喜答對！總共猜了 ${guessCount} 次。`;
+            messageElement.className = "message success";
+            endGame();
+        }
+    }
+
+    function endGame() {
+        isGameOver = true;
+        document.getElementById("guess-input").disabled = true;
+        document.getElementById("submit-btn").disabled = true;
+        document.getElementById("restart-btn").style.display = "block";
+    }
+
+    // 網頁載入時自動初始化遊戲
+    window.onload = initGame;
+</script>
+
+</body>
+</html>
