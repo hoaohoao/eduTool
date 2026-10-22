@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英打速度測試 (離線版)</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --primary-color: #4a90e2;
+            --text-color: #333333;
+            --correct-color: #2ecc71;
+            --wrong-color: #e74c3c;
+            --pending-color: #7f8c8d;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 900px;
+            position: relative;
+        }
+
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        /* 右上角最佳成績與統計卡片 */
+        .best-score-card {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            padding: 10px 16px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            min-width: 260px;
+        }
+
+        .best-score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            border-bottom: 1px dashed #ffe082;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .best-score-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #f57f17;
+        }
+
+        /* 下載截圖按鈕樣式 */
+        .upload-btn {
+            background-color: #27ae60;
+            color: white;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            background-color: #219150;
+        }
+
+        .best-score-details {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+            width: 100%;
+        }
+
+        .best-score-details div {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .best-score-details span.val {
+            font-weight: bold;
+            color: #d84315;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .time-select label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        select, button {
+            padding: 8px 16px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            outline: none;
+        }
+
+        button.main-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s, opacity 0.2s;
+        }
+
+        button.main-btn:hover:not(:disabled) {
+            background-color: #357abd;
+        }
+
+        button.main-btn:disabled {
+            background-color: #a0c4e8;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #eef2f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .typing-area {
+            background: #fafafa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+            user-select: none;
+        }
+
+        .line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .line-1 {
+            border-bottom: 2px dashed #e0e0e0;
+            padding-bottom: 15px;
+        }
+
+        .line-2 {
+            opacity: 0.5;
+        }
+
+        .word-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: transparent;
+            transition: all 0.2s ease;
+        }
+
+        .word-card.current {
+            background-color: #e2eefd;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .en-word {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--pending-color);
+            line-height: 1.2;
+        }
+
+        .char-correct {
+            color: var(--correct-color);
+        }
+
+        .char-wrong {
+            color: var(--wrong-color);
+            text-decoration: underline;
+        }
+
+        .input-box {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 20px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-box:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* 結算 Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .new-record-tag {
+            background-color: #e74c3c;
+            color: white;
+            font-size: 14px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            display: none;
+        }
+
+        .result-list {
+            text-align: left;
+            margin: 20px 0;
+            font-size: 18px;
+            line-height: 1.8;
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #777;
+            font-style: italic;
+            font-size: 18px;
+            width: 100%;
+        }
+
+        .session-id-tag {
+            margin-top: 6px;
+            padding-top: 4px;
+            border-top: 1px solid #ffe082;
+            font-size: 11px;
+            color: #777;
+            font-family: monospace;
+            width: 100%;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="captureContainer">
+    <div class="header-area">
+        <h1>英打速度測試</h1>
+        <!-- 右上角：完成次數、最佳成績與下載截圖按鈕 -->
+        <div class="best-score-card">
+            <div class="best-score-header">
+                <span class="best-score-title">🏆 本階段最佳成績</span>
+                <button id="downloadBtn" class="upload-btn">下載成績檔 (.png)</button>
+            </div>
+            <div class="best-score-details">
+                <div>已完成練習: <span class="val" id="bestCount">0 次</span></div>
+                <div>總正確字數: <span class="val" id="totalWords">0 個</span></div>
+                <div>最高正確字數: <span class="val" id="bestWords">-- 個</span></div>
+                <div>正確率: <span class="val" id="bestAcc">-- %</span></div>
+                <div>字數速度 (WPM): <span class="val" id="bestWPM">-- 字/分</span></div>
+                <div>按鍵速度 (KPM): <span class="val" id="bestKPM">-- /分</span></div>
+            </div>
+            <div id="sessionIdDisplay" class="session-id-tag">ID: 載入中...</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="time-select">
+            <label for="timerSelect">選擇時間：</label>
+            <select id="timerSelect">
+                <option value="180">3 分鐘</option>
+                <option value="300">5 分鐘</option>
+            </select>
+        </div>
+        <button id="restartBtn" class="main-btn">重新開始</button>
+    </div>
+
+    <div class="stats-bar">
+        <div>時間: <span id="timeDisplay">03:00</span></div>
+        <div>正確率: <span id="accuracyDisplay">100%</span></div>
+    </div>
+
+    <!-- 雙行文字區域 -->
+    <div class="typing-area" id="typingArea">
+        <div class="line line-1" id="line1"><div class="loading-text">正在載入單字...</div></div>
+        <div class="line line-2" id="line2"></div>
+    </div>
+
+    <input type="text" id="typingInput" class="input-box" placeholder="點擊此處輸入單字 (按空格鍵換字)..." disabled autocomplete="off">
+</div>
+
+<!-- 結算 Modal -->
+<div class="modal-overlay" id="resultModal">
+    <div class="modal">
+        <h2>練習完成！<span class="new-record-tag" id="newRecordTag">🎉 新紀錄！</span></h2>
+        <div class="result-list">
+            <p><strong>正確字數 (Words):</strong> <span id="resWords">0</span> 個</p>
+            <p><strong>正確率 (Accuracy):</strong> <span id="resAccuracy">0%</span></p>
+            <p><strong>字數速度 (WPM):</strong> <span id="resWPM">0</span> 字/分</p>
+            <p><strong>按鍵速度 (KPM):</strong> <span id="resKPM">0</span> Keystrokes/分</p>
+        </div>
+        <button id="closeModalBtn" class="main-btn">再試一次</button>
+    </div>
+</div>
+
+<!-- 離線隱藏單字庫區塊 (內建 2000 個常用英文單字) -->
+<div id="wordBankHiddenBlock" style="display: none;">
+a,about,above,across,act,action,activity,actor,actress,add,address,adult,advice,afraid,after,afternoon,again,against,age,ago,agree,air,airport,all,allow,almost,alone,along,already,also,always,amazing,ambition,among,amount,ancient,and,anger,angry,animal,another,answer,ant,anxious,any,anyone,anything,anywhere,apartment,appear,apple,apply,area,arm,army,around,arrive,art,artist,as,ask,asleep,at,attack,attend,attention,attitude,attract,aunt,author,autumn,available,avoid,award,aware,away,awesome,awful,baby,back,bad,bag,bake,balance,ball,banana,band,bank,bar,barrier,base,baseball,basic,basket,basketball,bath,bathroom,battery,be,beach,beam,bear,beat,beautiful,beauty,because,become,bed,bedroom,bee,beef,beer,before,begin,beginning,behavior,behind,belief,believe,bell,belong,below,belt,bench,beside,besides,best,better,between,beyond,bicycle,big,bike,bill,billion,bird,birth,birthday,biscuit,bit,bite,bitter,black,blank,blanket,bleed,blind,block,blood,blouse,blow,blue,board,boat,body,boil,bold,bomb,bone,book,boot,border,bored,boring,born,borrow,boss,both,bother,bottle,bottom,bow,bowl,box,boy,brain,branch,brave,bread,break,breakfast,breath,breathe,brick,bridge,brief,bright,brilliant,bring,broad,brother,brown,brush,bubble,budget,build,building,bullet,burn,bus,bush,business,busy,but,butter,butterfly,button,buy,by,cabbage,cabinet,cable,cake,calculate,calendar,call,calm,camera,camp,campaign,can,cancel,cancer,candidate,candle,candy,cap,capable,capital,captain,car,card,care,career,careful,careless,carpet,carrot,carry,cartoon,case,cash,castle,cat,catch,cause,ceiling,celebrate,cell,center,central,century,certain,certainly,chain,chair,chalk,challenge,chance,change,channel,chapter,character,charge,charity,charming,chart,chase,cheap,check,cheek,cheerful,cheese,chef,chemical,chemistry,cherry,chess,chest,chicken,chief,child,childhood,chimney,chin,chocolate,choice,choose,church,circle,citizen,city,claim,class,classic,classroom,clean,clear,clearly,clever,climate,climb,clock,close,closet,cloth,clothes,cloud,cloudy,club,clue,coach,coal,coast,coat,code,coffee,coin,cold,collect,collection,college,color,colorful,column,comb,combine,come,comfort,comfortable,command,common,company,compare,compete,competition,complain,complete,completely,complex,computer,concentrate,concept,concern,concert,conclusion,condition,conduct,confidence,confident,confirm,confuse,connect,connection,conscious,consider,considerable,consist,constant,construction,contact,contain,container,content,continue,continuous,contract,contrast,contribute,control,convenient,conversation,cook,cookie,cool,copy,corner,correct,cost,cottage,cotton,cough,could,count,country,countryside,couple,courage,course,court,cousin,cover,cow,crash,crazy,cream,create,creative,creature,credit,crime,criminal,crisis,critic,critical,crop,cross,crowd,crowded,cruel,cry,culture,cup,board,cure,curious,curtain,curve,custom,customer,cut,cute,cycle,dad,daily,damage,dance,dancer,danger,dangerous,dare,dark,darling,data,date,daughter,day,dead,deaf,deal,dear,death,debate,debt,decade,decide,decision,deck,declare,decrease,deep,deeply,deer,defeat,defend,defense,degree,delay,delete,delicate,delicious,delight,deliver,demand,department,depend,describe,description,desert,deserve,design,desire,desk,desperate,despite,dessert,destroy,detail,detailed,detective,determine,develop,development,device,devil,diamond,diary,dictionary,die,diet,different,difficult,difficulty,dig,digital,dinner,direct,direction,directly,director,dirt,dirty,disagree,disappear,disappoint,disaster,discount,discover,discovery,discuss,discussion,disease,dish,dishonest,disk,dislike,dismiss,distance,distant,distinct,distribute,district,divide,do,doctor,document,dog,doll,dollar,dolphin,door,double,doubt,down,downstairs,downtown,dozen,drag,drama,dramatic,draw,drawer,drawing,dream,dress,drink,drive,driver,drop,drug,drum,dry,duck,due,dull,during,dust,duty,each,eager,ear,early,earn,earth,earthquake,ease,easily,east,eastern,easy,eat,economic,economy,edge,editor,education,effect,effective,effort,egg,eight,eighteen,eighty,either,elbow,elderly,elect,election,electric,electricity,electronic,element,elephant,eleven,else,elsewhere,embarrassed,emerge,emergency,emotion,emotional,emphasis,employ,employee,employer,empty,enable,encourage,end,enemy,energy,engage,engine,engineer,enjoy,enormous,enough,enter,entertainment,enthusiastic,entire,entirely,entrance,entry,envelope,environment,envy,equal,equipment,error,escape,especially,essay,essential,establish,estate,estimate,even,evening,event,eventually,ever,every,everybody,everyday,everyone,everything,everywhere,evidence,exact,exactly,exam,examine,example,excellent,except,exchange,excited,exciting,excuse,exercise,exhibition,exist,existence,exit,expand,expect,expectation,expense,expensive,experience,experiment,expert,explain,explanation,explode,explore,explosion,export,expose,express,expression,extend,extent,extra,extraordinary,extreme,extremely,eye,face,fact,factory,fail,failure,faint,fair,fairly,faith,fall,false,familiar,family,famous,fan,fancy,far,farm,farmer,fashion,fashionable,fast,fat,father,fault,favor,favorite,fear,feather,feature,february,fee,feed,feel,feeling,fellow,female,fence,festival,fever,few,field,fifteen,fifty,fight,figure,file,fill,film,final,finally,finance,financial,find,fine,finger,finish,fire,firm,first,fish,fisherman,fist,fit,fitness,five,fix,flag,flame,flash,flat,flavor,flesh,flight,float,flood,floor,flour,flow,flower,fly,focus,fog,fold,folk,follow,following,fond,food,fool,foolish,foot,football,for,forbid,force,foreign,foreigner,forest,forever,forget,forgive,fork,form,formal,former,fortunate,fortune,forward,fossil,foundation,fountain,four,fourteen,fourth,fox,frame,free,freedom,freeze,frequent,frequently,fresh,fridge,friend,friendly,friendship,frighten,frog,from,front,frontier,fruit,fry,fuel,full,fully,fun,function,funny,furniture,further,future,gain,gallery,game,garage,garbage,garden,garlic,gas,gate,gather,gay,gaze,general,generally,generate,generation,generous,gentle,gentleman,genuine,geography,gesture,get,ghost,giant,gift,giraffe,girl,girlfriend,give,glad,glance,glass,glasses,global,glove,go,goal,goat,god,gold,golden,golf,good,goodbye,goodness,goods,goose,gossip,govern,government,governor,grace,grade,gradual,gradually,graduate,grain,grand,grandfather,grandmother,grandparent,grant,grape,grass,grateful,grave,great,greatly,greedy,green,greet,grey,ground,group,grow,growth,guarantee,guard,guess,guest,guide,guilty,guitar,gun,guy,habit,hair,haircut,half,hall,ham,hamburger,hammer,hand,handle,handsome,hang,happen,happiness,happy,hard,hardly,harm,harmful,hat,hate,have,he,head,headache,headline,headmaster,health,healthy,hear,heart,heat,heaven,heavy,heavy,heel,height,helicopter,hell,hello,helmet,help,helpful,hen,her,here,hero,heroine,hers,herself,hesitate,hi,hide,high,highly,highway,hill,him,himself,hire,his,history,hit,hobby,hold,hole,holiday,hollow,holy,home,homework,honest,honesty,honey,honor,hope,hopeful,hopeless,horizon,horn,horrible,horse,hospital,host,hot,hotel,hour,house,household,how,however,huge,human,humor,humorous,hundred,hungry,hunt,hunter,hurry,hurt,husband,hut,ice,idea,ideal,identify,identity,if,ignore,ill,illegal,illness,illustrate,image,imagination,imagine,immediate,immediately,immigrant,impact,impatient,imply,import,importance,important,impossible,impress,impression,impressive,improve,improvement,in,inch,incident,include,including,income,increase,increasingly,indeed,independent,index,indicate,individual,indoor,industry,infection,influence,inform,information,initial,injure,injury,ink,inner,innocent,insect,inside,insist,inspect,inspire,install,instance,instead,institute,institution,instruction,instrument,insult,insurance,intelligence,intelligent,intend,intense,intent,intention,interest,interested,interesting,internal,international,internet,interpret,interrupt,interval,interview,into,introduce,introduction,invent,invention,invest,investigate,investment,invitation,invite,involve,iron,island,issue,it,item,its,itself,jacket,jam,january,japan,jazz,jealous,jeans,jelly,job,jog,join,joint,joke,journal,journey,joy,judge,judgment,juice,july,jump,june,jungle,junior,jury,just,justice,justify,keen,keep,key,keyboard,kick,kid,kill,kilogram,kilometer,kind,kindness,king,kingdom,kiss,kitchen,kite,knee,knife,knock,know,knowledge,lab,label,labor,laboratory,lack,ladder,lady,lake,lamb,lamp,land,landscape,language,large,largely,last,late,lately,later,latest,latter,laugh,laughter,launch,law,lawyer,lay,lazy,lead,leader,leadership,leaf,league,lean,leap,learn,least,leather,leave,lecture,left,leg,legal,lemon,lemonade,lend,length,less,lesson,let,letter,level,liberal,liberty,library,license,lid,lie,life,lift,light,lightning,like,likely,limit,line,lion,lip,liquid,list,listen,listener,literary,literature,little,live,lively,liver,living,load,loan,local,locate,location,lock,log,lonely,long,look,loose,lord,lose,loss,lost,lot,loud,loudly,love,lovely,lover,low,lower,loyal,loyalty,luck,lucky,luggage,lunch,lung,machine,mad,magazine,magic,magic,magnificent,mail,main,mainly,maintain,major,majority,make,male,mall,man,manage,management,manager,manner,manufacture,many,map,march,march,mark,market,marriage,married,marry,mask,mass,massive,master,match,material,math,mathematics,matter,maximum,may,maybe,mayor,me,meal,mean,meaning,means,meantime,meanwhile,measure,measurement,meat,mechanic,mechanism,medical,medicine,medium,meet,meeting,melody,melt,member,membership,memory,mental,mention,menu,merchant,mercy,mere,merely,mess,message,metal,method,meter,middle,midnight,might,mild,mile,military,milk,mill,millimeter,million,mind,mine,mineral,minimum,minister,ministry,minor,minority,minute,mirror,miserable,miss,missile,mission,mistake,mix,mixture,mobile,mode,model,modern,modest,mom,moment,monday,money,monkey,month,monthly,mood,moon,moral,more,moreover,morning,most,mostly,mother,motion,motivate,motor,mountain,mouse,mouth,move,movement,movie,much,mud,multiple,murder,museum,music,musical,musician,must,mustard,mutton,my,myself,mysterious,mystery,nail,naked,name,narrow,nation,national,native,natural,naturally,nature,navy,near,nearby,nearly,neat,necessary,neck,need,needle,negative,neighbor,neighborhood,neither,nephew,nerve,nervous,nest,net,network,never,nevertheless,new,news,newspaper,next,nice,night,nightmare,nine,nineteen,ninety,no,nobody,nod,noise,noisy,none,nonsense,noon,nor,normal,normally,north,northern,nose,not,note,notebook,nothing,notice,novel,november,now,nowadays,nowhere,nuclear,number,numerous,nurse,nut,nutritious,obey,object,objective,obligation,observation,observe,obtain,obvious,obviously,occasion,occasional,occasionally,occupation,occupy,occur,ocean,o'clock,october,odd,of,off,offend,offense,offer,office,officer,official,often,oil,ok,old,old-fashioned,olive,onion,online,only,onto,open,opening,opera,operate,operation,operator,opinion,opponent,opportunity,oppose,opposite,optimistic,option,or,orange,orbit,order,ordinary,organ,organic,organization,organize,origin,original,originally,other,otherwise,ought,our,ours,ourselves,out,outdoor,outdoors,outer,outline,output,outside,outstanding,oven,over,overall,overcome,overseas,owe,own,owner,pace,pack,package,packet,page,pain,painful,paint,painter,painting,pair,palace,pale,pan,pancake,panel,panic,pants,paper,paragraph,pardon,parent,park,parking,parliament,part,particular,partly,partner,party,pass,passage,passenger,passion,passive,passport,past,pasta,path,patience,patient,pattern,pause,pay,payment,peace,peaceful,peach,peak,pear,pen,pencil,penny,people,pepper,per,percent,percentage,perfect,perfectly,perform,performance,performer,perhaps,period,permanent,permission,permit,person,personal,personality,personally,persuade,pet,phone,photo,photograph,photographer,phrase,physical,physician,physics,piano,pick,picnic,picture,pie,piece,pig,pigeon,pile,pill,pilot,pin,pink,pity,pizza,place,plain,plan,plane,planet,plant,plastic,plate,platform,play,player,playground,pleasant,please,pleased,pleasure,plenty,plot,plug,pocket,poem,poet,poetry,point,poison,poisonous,pole,police,policeman,policy,polite,political,politician,politics,pollution,pool,poor,pop,popular,population,pork,port,portion,portrait,position,positive,possess,possession,possibility,possible,possibly,post,postage,postcard,poster,pot,potato,potential,pound,pour,poverty,powder,power,powerful,practical,practically,practice,praise,pray,prayer,precious,precise,predict,prefer,preference,pregnant,prepare,presence,present,presentation,preserve,president,press,pressure,pretend,pretty,prevent,previous,price,pride,priest,primary,prince,princess,principal,principle,print,printer,prior,priority,prison,prisoner,private,prize,probable,probably,problem,procedure,process,produce,producer,product,production,profession,professional,professor,profile,profit,program,progress,project,promise,promote,pronounce,proof,proper,properly,property,proportion,proposal,propose,protest,proud,prove,provide,provided,public,publication,publish,publisher,pull,pump,punish,punishment,pupil,purchase,pure,purpose,purse,pursue,push,put,qualification,qualify,quality,quantity,quarter,queen,question,quick,quickly,quiet,quietly,quite,quiz,rabbit,race,racing,radar,radio,rail,railway,rain,rainbow,rainy,raise,range,rank,rapid,rare,rarely,rat,rate,rather,raw,reach,react,reaction,read,reader,readily,reading,ready,real,realistic,reality,realize,really,reason,reasonable,recall,receive,recent,recently,reception,recipe,reckon,recognize,recommend,record,recording,recover,recovery,red,reduce,reduction,refer,reference,reflect,reflection,reform,refrigerator,refuse,regard,regardless,region,regional,register,regret,regular,regularly,regulation,reject,relate,relation,relationship,relative,relatively,relax,relaxed,release,relevant,reliable,relief,relieve,religion,religious,rely,remain,remains,remark,remarkable,remember,remind,remote,remove,rent,repair,repeat,replace,reply,report,reporter,represent,representative,reputation,request,require,requirement,rescue,research,researcher,reservation,reserve,resident,resist,resistance,resolution,resolve,resort,resource,respect,respond,response,responsibility,responsible,rest,restaurant,result,retain,retire,retired,return,reveal,review,revolution,reward,rhythm,rice,rich,rid,ride,rider,ridiculous,right,ring,rise,risk,river,road,roar,roast,rob,robot,rock,rocket,rod,role,roll,romantic,roof,room,root,rope,rose,rough,roughly,round,route,routine,row,royal,rub,rubber,rubbish,rude,ruin,rule,ruler,run,runner,running,rural,rush,sad,sadly,sadness,safe,safety,sail,sailor,salad,salary,sale,salt,salty,same,sample,sand,sandwich,satisfy,sauce,sausage,save,saving,say,scale,scared,scary,scene,scenery,schedule,scheme,school,science,scientific,scientist,scissors,scold,score,scream,screen,screw,sculpture,sea,search,season,seat,second,secondary,secret,secretary,section,sector,security,see,seed,seek,seem,select,selection,self,selfish,sell,senate,senator,send,senior,sense,sensible,sensitive,sentence,separate,separately,september,series,serious,seriously,servant,serve,service,session,set,setting,settle,settlement,seven,seventeen,seventy,several,severe,sew,sex,sexual,shade,shadow,shake,shall,shallow,shame,shape,share,sharp,shave,she,sheep,sheet,shelf,shell,shelter,shift,shine,ship,shirt,shock,shocked,shoe,shoot,shop,shopping,shore,short,shortly,shot,should,shoulder,shout,show,shower,shut,shy,sick,side,sidewalk,sight,sign,signal,signature,significance,significant,silence,silent,silk,silly,silver,similar,simple,simply,since,sincere,sing,singer,single,sink,sir,sister,sit,site,situation,six,sixteen,sixty,size,skill,skin,skirt,sky,slap,slave,sleep,sleepy,sleeve,slice,slide,slight,slightly,slim,slip,slope,slow,slowly,small,smart,smell,smile,smoke,smooth,snake,snow,so,soap,soccer,social,society,sock,soft,softly,soil,soldier,solid,solution,solve,some,somebody,somehow,someone,something,sometime,sometimes,somewhere,son,song,soon,sore,sorry,sort,soul,sound,soup,sour,source,south,southern,space,spare,speak,speaker,special,specialist,specifically,speech,speed,spell,spelling,spend,spice,spider,spill,spin,spirit,spiritual,spite,split,spoil,spoon,sport,spot,spread,spring,square,squeeze,stable,staff,stage,stair,stamp,stand,standard,star,stare,start,starve,state,statement,station,statistic,statue,stay,steal,steam,steel,steep,steer,step,stick,stiff,still,stomach,stone,stop,storage,store,storm,story,straight,strange,stranger,strategy,stream,street,strength,stress,stretch,strict,strike,string,strip,stripe,stroke,strong,strongly,structure,struggle,student,studio,study,stuff,stupid,style,subject,submit,substance,substantive,succeed,success,successful,such,sudden,suddenly,suffer,sugar,suggest,suggestion,suit,suitable,suitcase,sum,summary,summer,sun,sunday,sunlight,sunny,sunset,super,supermarket,supper,supply,support,supporter,suppose,sure,surely,surface,surgeon,surgery,surprise,surprised,surprising,surround,survey,survive,survivor,suspect,suspect,suspicion,suspicious,swallow,swear,sweat,sweep,sweet,swim,swimmer,swimming,swing,switch,symbol,sympathy,system,table,tablet,tail,tailor,take,tale,talent,talented,talk,tall,tank,tap,tape,target,task,taste,tax,taxi,tea,teach,teacher,teaching,team,tear,tear,technical,technique,technology,teenager,telephone,television,tell,temperature,temporary,ten,tend,tendency,tennis,tent,term,terrible,terribly,territory,terror,test,text,textbook,than,thank,thanks,that,the,theater,their,theirs,them,themselves,then,theory,there,therefore,these,they,thick,thief,thin,thing,think,thinking,third,thirty,this,thorough,thoroughly,though,thought,thousand,threat,threaten,three,throat,through,throughout,throw,thumb,thunder,thursday,thus,ticket,tidy,tie,tiger,tight,till,time,timetable,tin,tiny,tip,tire,tired,tissue,title,to,toast,today,toe,together,tomato,tomorrow,tongue,tonight,too,tool,tooth,toothache,toothbrush,toothpaste,top,topic,total,totally,touch,tough,tour,tourist,toward,towards,towel,tower,town,toy,trace,track,trade,tradition,traditional,traffic,tragedy,trail,train,trainer,training,transfer,transform,translate,translation,transport,transportation,trap,trash,travel,traveler,trend,trial,triangle,trick,trip,tropical,trouble,trousers,truck,true,truly,trunk,trust,truth,try,T-shirt,tube,tuesday,tune,tunnel,turkey,turn,turnip,tutor,twelve,twenty,twice,twin,two,type,typical,ugly,umbrella,unable,uncle,under,underground,understand,understanding,underwear,undo,undoubtedly,unfortunate,unfortunately,unhappy,uniform,union,unique,unit,unite,universal,universe,university,unkind,unknown,unless,unlike,unlikely,unnecessary,until,unusual,up,upon,upper,upset,upstairs,urban,urge,urgent,us,use,used,useful,useless,user,usual,usually,vacation,valley,valuable,value,van,variation,variety,various,vary,vast,vegetable,vehicle,version,very,victim,victory,video,view,village,violence,violent,violin,visit,visitor,visual,vital,voice,volcano,volleyball,volume,volunteer,vote,wage,wait,waiter,waitress,wake,walk,wall,wallet,wander,want,war,warm,warmth,warn,warning,wash,washing,waste,watch,water,wave,way,we,weak,weakness,wealth,wealthy,weapon,wear,weather,web,website,wedding,wednesday,weed,week,weekday,weekend,weekly,weigh,weight,welcome,welfare,well,west,western,wet,what,whatever,wheel,when,whenever,where,whereas,wherever,whether,which,while,whisper,white,who,whoever,whole,whom,whose,why,wide,widely,widespread,widow,wife,wild,wildlife,will,willing,win,wind,window,windy,wine,wing,winner,winter,wipe,wire,wisdom,wise,wish,with,within,without,witness,wolf,woman,wonder,wonderful,wood,wooden,wool,word,work,worker,working,world,worry,worse,worst,worth,would,wound,wrap,wrist,write,writer,writing,wrong,yard,yeah,year,yellow,yes,yesterday,yet,you,young,your,yours,yourself,yourselves,youth,zero,zoo
+</div>
+
+<script>
+    let wordPool = [];         
+    let line1Obj = [];       
+    let line2Obj = [];       
+    let currentWordIndex = 0;  
+    
+    let timer = null;
+    let cooldownTimer = null; 
+    let cooldownRemaining = 0;
+
+    let timeTotal = 180;
+    let timeRemaining = 180;
+    let isPlaying = false;
+
+    let totalKeystrokes = 0;
+    let correctKeystrokes = 0;
+    let correctWordsCount = 0;
+
+    const line1Elem = document.getElementById('line1');
+    const line2Elem = document.getElementById('line2');
+    const typingInput = document.getElementById('typingInput');
+    const timerSelect = document.getElementById('timerSelect');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const accuracyDisplay = document.getElementById('accuracyDisplay');
+    const restartBtn = document.getElementById('restartBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resultModal = document.getElementById('resultModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
+    // DOM 元素
+    const bestCountElem = document.getElementById('bestCount');
+    const totalWordsElem = document.getElementById('totalWords');
+    const bestWordsElem = document.getElementById('bestWords');
+    const bestAccElem = document.getElementById('bestAcc');
+    const bestWPMElem = document.getElementById('bestWPM');
+    const bestKPMElem = document.getElementById('bestKPM');
+    const newRecordTag = document.getElementById('newRecordTag');
+    const sessionIdDisplay = document.getElementById('sessionIdDisplay');
+
+    const WORDS_PER_LINE = 4; 
+    const COOLDOWN_SECONDS = 10; 
+
+    // 取得或生成本次開啟頁面的「唯一識別碼」
+    function getOrCreatePageSessionId() {
+        let sid = sessionStorage.getItem('page_session_id');
+        if (!sid) {
+            const randomPart = Math.random().toString(36).substring(2, 9).toUpperCase();
+            const timePart = Date.now().toString().slice(-6);
+            sid = `SID-${timePart}-${randomPart}`;
+            sessionStorage.setItem('page_session_id', sid);
+        }
+        return sid;
+    }
+
+    // 洗牌演算法 (Fisher-Yates Shuffle)
+    function shuffleArray(array) {
+        let arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // 從 HTML 隱藏區塊解析 2000 個內建單字
+    function fetchMoreWords() {
+        const rawText = document.getElementById('wordBankHiddenBlock').textContent.trim();
+        const rawList = rawText.split(',').map(w => w.trim()).filter(w => w.length > 0);
+        wordPool.push(...shuffleArray(rawList));
+    }
+
+    // 載入階段最佳成績
+    function loadBestScore() {
+        const count = sessionStorage.getItem('typing_session_count') || '0';
+        const totalWords = sessionStorage.getItem('typing_total_words') || '0';
+        const bestWords = sessionStorage.getItem('typing_best_words');
+        const sid = getOrCreatePageSessionId();
+        
+        bestCountElem.textContent = `${count} 次`;
+        totalWordsElem.textContent = `${totalWords} 個`;
+        sessionIdDisplay.textContent = `識別碼: ${sid}`;
+
+        if (bestWords !== null) {
+            bestWordsElem.textContent = `${bestWords} 個`;
+            bestAccElem.textContent = `${sessionStorage.getItem('typing_best_acc')}%`;
+            bestWPMElem.textContent = `${sessionStorage.getItem('typing_best_wpm')} 字/分`;
+            bestKPMElem.textContent = `${sessionStorage.getItem('typing_best_kpm')} /分`;
+        } else {
+            bestWordsElem.textContent = '-- 個';
+            bestAccElem.textContent = '-- %';
+            bestWPMElem.textContent = '-- 字/分';
+            bestKPMElem.textContent = '-- /分';
+        }
+    }
+
+    function checkAndUpdateBestScore(words, acc, wpm, kpm) {
+        let count = parseInt(sessionStorage.getItem('typing_session_count') || '0');
+        count++;
+        sessionStorage.setItem('typing_session_count', count);
+
+        let totalWords = parseInt(sessionStorage.getItem('typing_total_words') || '0');
+        totalWords += words;
+        sessionStorage.setItem('typing_total_words', totalWords);
+
+        const currentBestWords = sessionStorage.getItem('typing_best_words');
+        let isNewRecord = false;
+
+        if (currentBestWords === null || words > parseInt(currentBestWords)) {
+            sessionStorage.setItem('typing_best_words', words);
+            sessionStorage.setItem('typing_best_acc', acc);
+            sessionStorage.setItem('typing_best_wpm', wpm);
+            sessionStorage.setItem('typing_best_kpm', kpm);
+            isNewRecord = true;
+        }
+
+        loadBestScore();
+        return isNewRecord;
+    }
+
+    // 純 Canvas 繪製成績單 PNG 圖片並發送下載 (完全離線相容)
+    function downloadScreenshot() {
+        const bestWords = sessionStorage.getItem('typing_best_words');
+        if (!bestWords) {
+            alert('【警告】目前尚未有最佳成績可供匯出！請先完成至少一次練習。');
+            return;
+        }
+
+        const className = prompt('請輸入班級 (數字)：');
+        if (className === null) return;
+
+        const seatNumber = prompt('請輸入座號 (數字)：');
+        if (seatNumber === null) return;
+
+        if (!className.trim() || !seatNumber.trim()) {
+            alert('【錯誤】請完整輸入班級與座號！');
+            return;
+        }
+
+        const sid = getOrCreatePageSessionId();
+        const count = sessionStorage.getItem('typing_session_count') || '0';
+        const totalWords = sessionStorage.getItem('typing_total_words') || '0';
+        const bestAcc = sessionStorage.getItem('typing_best_acc') || '0';
+        const bestWpm = sessionStorage.getItem('typing_best_wpm') || '0';
+        const bestKpm = sessionStorage.getItem('typing_best_kpm') || '0';
+
+        // 建立隱藏 Canvas 繪畫面板 (寬 600, 高 420)
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = 420;
+        const ctx = canvas.getContext('2d');
+
+        // 背景
+        ctx.fillStyle = '#f4f7f6';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 卡片主體
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+        ctx.shadowBlur = 15;
+        ctx.fillRect(30, 30, 540, 360);
+        ctx.shadowBlur = 0; // 重置陰影
+
+        // 卡片邊框
+        ctx.strokeStyle = '#4a90e2';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(30, 30, 540, 360);
+
+        // 標題列背景
+        ctx.fillStyle = '#e2eefd';
+        ctx.fillRect(30, 30, 540, 60);
+
+        // 大標題
+        ctx.fillStyle = '#4a90e2';
+        ctx.font = 'bold 24px "Microsoft JhengHei", "Segoe UI", sans-serif';
+        ctx.fillText('🏆 英打速度測試 - 練習成績單', 50, 70);
+
+        // 考生與識別碼資訊區 (藍底卡片)
+        ctx.fillStyle = '#eef2f5';
+        ctx.fillRect(50, 105, 500, 45);
+
+        ctx.fillStyle = '#333333';
+        ctx.font = 'bold 16px "Microsoft JhengHei", "Segoe UI", sans-serif';
+        ctx.fillText(`考生: ${className.trim()} 班 ${seatNumber.trim()} 號`, 65, 133);
+
+        ctx.fillStyle = '#d84315';
+        ctx.font = '13px monospace';
+        ctx.fillText(`識別碼: ${sid}`, 310, 133);
+
+        // 成績數據列表
+        ctx.fillStyle = '#555555';
+        ctx.font = '16px "Microsoft JhengHei", "Segoe UI", sans-serif';
+        
+        const lineY = [185, 220, 255, 290, 325, 360];
+        
+        ctx.fillText('已完成練習次數:', 65, lineY[0]);
+        ctx.fillText(`${count} 次`, 430, lineY[0]);
+
+        ctx.fillText('總正確字數:', 65, lineY[1]);
+        ctx.fillText(`${totalWords} 個`, 430, lineY[1]);
+
+        ctx.fillText('最高正確字數:', 65, lineY[2]);
+        ctx.fillText(`${bestWords} 個`, 430, lineY[2]);
+
+        ctx.fillText('正確率:', 65, lineY[3]);
+        ctx.fillText(`${bestAcc} %`, 430, lineY[3]);
+
+        ctx.fillText('字數速度 (WPM):', 65, lineY[4]);
+        ctx.fillText(`${bestWpm} 字/分`, 430, lineY[4]);
+
+        ctx.fillText('按鍵速度 (KPM):', 65, lineY[5]);
+        ctx.fillText(`${bestKpm} /分`, 430, lineY[5]);
+
+        // 繪製分隔虛線
+        ctx.strokeStyle = '#e0e0e0';
+        ctx.setLineDash([4, 4]);
+        lineY.slice(0, 5).forEach(y => {
+            ctx.beginPath();
+            ctx.moveTo(65, y + 10);
+            ctx.lineTo(530, y + 10);
+            ctx.stroke();
+        });
+
+        // 轉換為 PNG 圖片並匯出下載
+        try {
+            const imgURI = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `英打成績_${className.trim()}班_${seatNumber.trim()}號.png`;
+            link.href = imgURI;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            alert('【成功】成績圖片已成功產生並下載至您的裝置！');
+        } catch (err) {
+            console.error('PNG Download Error:', err);
+            alert('【錯誤】圖片生成失敗，請再試一次。');
+        }
+    }
+
+    function startCooldown() {
+        clearInterval(cooldownTimer);
+        cooldownRemaining = COOLDOWN_SECONDS;
+        restartBtn.disabled = true;
+        restartBtn.textContent = `重新開始 (${cooldownRemaining}s)`;
+
+        cooldownTimer = setInterval(() => {
+            cooldownRemaining--;
+            if (cooldownRemaining > 0) {
+                restartBtn.textContent = `重新開始 (${cooldownRemaining}s)`;
+            } else {
+                clearInterval(cooldownTimer);
+                restartBtn.disabled = false;
+                restartBtn.textContent = '重新開始';
+            }
+        }, 1000);
+    }
+
+    function processWordObjects(count) {
+        if (wordPool.length < count) {
+            fetchMoreWords();
+        }
+        const rawWords = wordPool.splice(0, count);
+        return rawWords.map(word => ({ word }));
+    }
+
+    function fetchWords() {
+        line1Elem.innerHTML = '<div class="loading-text">正在載入單字...</div>';
+        line2Elem.innerHTML = '';
+        
+        fetchMoreWords();
+        line1Obj = processWordObjects(WORDS_PER_LINE);
+        line2Obj = processWordObjects(WORDS_PER_LINE);
+        
+        renderLines();
+        typingInput.disabled = false;
+    }
+
+    function renderLines() {
+        line1Elem.innerHTML = '';
+        line1Obj.forEach((item, idx) => {
+            const card = document.createElement('div');
+            card.className = 'word-card' + (idx === currentWordIndex ? ' current' : '');
+            card.id = `card-line1-${idx}`;
+            
+            card.innerHTML = `
+                <div class="en-word" id="line1-word-${idx}">${item.word}</div>
+            `;
+            line1Elem.appendChild(card);
+        });
+
+        line2Elem.innerHTML = '';
+        line2Obj.forEach((item) => {
+            const card = document.createElement('div');
+            card.className = 'word-card';
+            card.innerHTML = `
+                <div class="en-word">${item.word}</div>
+            `;
+            line2Elem.appendChild(card);
+        });
+    }
+
+    function shiftToNextLine() {
+        currentWordIndex = 0;
+        line1Obj = [...line2Obj];
+        renderLines();
+
+        line2Obj = processWordObjects(WORDS_PER_LINE);
+        line2Elem.innerHTML = '';
+        line2Obj.forEach((item) => {
+            const card = document.createElement('div');
+            card.className = 'word-card';
+            card.innerHTML = `
+                <div class="en-word">${item.word}</div>
+            `;
+            line2Elem.appendChild(card);
+        });
+    }
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function initGame(triggerCooldown = false) {
+        clearInterval(timer);
+        isPlaying = false;
+        timeTotal = parseInt(timerSelect.value);
+        timeRemaining = timeTotal;
+        timeDisplay.textContent = formatTime(timeRemaining);
+        
+        currentWordIndex = 0;
+        totalKeystrokes = 0;
+        correctKeystrokes = 0;
+        correctWordsCount = 0;
+
+        accuracyDisplay.textContent = '100%';
+        typingInput.value = '';
+        typingInput.disabled = true;
+        resultModal.style.display = 'none';
+
+        if (triggerCooldown) {
+            startCooldown();
+        }
+
+        fetchWords();
+    }
+
+    function startTimer() {
+        isPlaying = true;
+        timer = setInterval(() => {
+            timeRemaining--;
+            timeDisplay.textContent = formatTime(timeRemaining);
+
+            if (timeRemaining <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function updateAccuracy() {
+        if (totalKeystrokes === 0) {
+            accuracyDisplay.textContent = '100%';
+            return 100;
+        }
+        const acc = Math.max(0, Math.round((correctKeystrokes / totalKeystrokes) * 100));
+        accuracyDisplay.textContent = `${acc}%`;
+        return acc;
+    }
+
+    typingInput.addEventListener('input', (e) => {
+        if (!isPlaying && typingInput.value.length > 0) {
+            startTimer();
+        }
+
+        const inputVal = typingInput.value;
+        const currentItem = line1Obj[currentWordIndex];
+        if (!currentItem) return;
+        
+        const currentWord = currentItem.word;
+        const currentWordElem = document.getElementById(`line1-word-${currentWordIndex}`);
+        const currentCard = document.getElementById(`card-line1-${currentWordIndex}`);
+
+        if (inputVal.endsWith(' ')) {
+            const trimmedInput = inputVal.trim();
+            
+            if (trimmedInput === currentWord) {
+                correctWordsCount++;
+                if (currentWordElem) currentWordElem.style.color = 'var(--correct-color)';
+            } else {
+                if (currentWordElem) currentWordElem.style.color = 'var(--wrong-color)';
+            }
+
+            if (currentCard) currentCard.classList.remove('current');
+            currentWordIndex++;
+
+            if (currentWordIndex >= line1Obj.length) {
+                shiftToNextLine();
+            } else {
+                const nextCard = document.getElementById(`card-line1-${currentWordIndex}`);
+                if (nextCard) nextCard.classList.add('current');
+            }
+
+            typingInput.value = '';
+            return;
+        }
+
+        let formattedHTML = '';
+        for (let i = 0; i < currentWord.length; i++) {
+            if (i < inputVal.length) {
+                if (inputVal[i] === currentWord[i]) {
+                    formattedHTML += `<span class="char-correct">${currentWord[i]}</span>`;
+                } else {
+                    formattedHTML += `<span class="char-wrong">${currentWord[i]}</span>`;
+                }
+            } else {
+                formattedHTML += currentWord[i];
+            }
+        }
+        if (currentWordElem) {
+            currentWordElem.innerHTML = formattedHTML;
+        }
+    });
+
+    typingInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace') {
+            totalKeystrokes++;
+            updateAccuracy();
+            return;
+        }
+
+        if (e.key.length === 1) {
+            totalKeystrokes++;
+            
+            if (line1Obj[currentWordIndex]) {
+                const currentWord = line1Obj[currentWordIndex].word;
+                const currentInput = typingInput.value;
+                const charIndex = currentInput.length;
+
+                if (e.key === ' ') {
+                    if (currentInput === currentWord) {
+                        correctKeystrokes++;
+                    }
+                } else if (charIndex < currentWord.length && e.key === currentWord[charIndex]) {
+                    correctKeystrokes++;
+                }
+            }
+
+            updateAccuracy();
+        }
+    });
+
+    function endGame() {
+        clearInterval(timer);
+        isPlaying = false;
+        typingInput.disabled = true;
+
+        const timeSpentInMinutes = (timeTotal - timeRemaining) / 60;
+        const minutes = timeSpentInMinutes > 0 ? timeSpentInMinutes : (timeTotal / 60);
+
+        const finalAccuracy = updateAccuracy();
+        const kpm = Math.round(correctKeystrokes / minutes);
+        const wpm = Math.round(correctWordsCount / minutes);
+
+        const isNewRecord = checkAndUpdateBestScore(correctWordsCount, finalAccuracy, wpm, kpm);
+        newRecordTag.style.display = isNewRecord ? 'inline-block' : 'none';
+
+        document.getElementById('resWords').textContent = correctWordsCount;
+        document.getElementById('resAccuracy').textContent = `${finalAccuracy}%`;
+        document.getElementById('resWPM').textContent = wpm;
+        document.getElementById('resKPM').textContent = kpm;
+
+        resultModal.style.display = 'flex';
+    }
+
+    timerSelect.addEventListener('change', () => initGame(false));
+    restartBtn.addEventListener('click', () => initGame(true));
+    downloadBtn.addEventListener('click', downloadScreenshot);
+    closeModalBtn.addEventListener('click', () => initGame(true));
+
+    window.onload = () => {
+        loadBestScore();
+        initGame(false);
+    };
+</script>
+
+</body>
+</html>

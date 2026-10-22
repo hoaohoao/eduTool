@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓光井字對戰 - Tic-Tac-Toe</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti CDN for victory celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Cyberpunk Glowing Effects */
+        .glow-x {
+            color: #06b6d4;
+            text-shadow: 0 0 12px rgba(6, 182, 212, 0.8), 0 0 25px rgba(6, 182, 212, 0.4);
+        }
+
+        .glow-o {
+            color: #ec4899;
+            text-shadow: 0 0 12px rgba(236, 72, 153, 0.8), 0 0 25px rgba(236, 72, 153, 0.4);
+        }
+
+        .board-cell {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .board-cell:hover:not(.occupied) {
+            background: rgba(51, 65, 85, 0.9);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.5);
+        }
+
+        .board-cell.occupied {
+            cursor: not-allowed;
+        }
+
+        .board-cell.winning-cell {
+            animation: pulse-win 1.2s infinite alternate;
+        }
+
+        .board-cell.winning-cell.win-x {
+            background: rgba(6, 182, 212, 0.25);
+            border-color: #06b6d4;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.6);
+        }
+
+        .board-cell.winning-cell.win-o {
+            background: rgba(236, 72, 153, 0.25);
+            border-color: #ec4899;
+            box-shadow: 0 0 30px rgba(236, 72, 153, 0.6);
+        }
+
+        @keyframes pulse-win {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.04); }
+        }
+
+        /* Glassmorphism Cards */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.65);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Pulse animations for status indicator */
+        .pulse-turn-x {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+            border-color: #06b6d4;
+        }
+
+        .pulse-turn-o {
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.5);
+            border-color: #ec4899;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 overflow-x-hidden">
+
+    <!-- Header & Title -->
+    <header class="text-center my-2 sm:my-4">
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500">
+            霓光井字遊戲
+        </h1>
+        <p class="text-slate-400 text-xs sm:text-sm mt-1 font-medium tracking-wide">
+            NEON TIC-TAC-TOE ULTIMATE
+        </p>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-md flex flex-col items-center gap-5">
+
+        <!-- Controls & Mode Selector -->
+        <div class="glass-panel w-full p-3 sm:p-4 rounded-2xl flex flex-col gap-3">
+            <!-- Mode Buttons -->
+            <div class="grid grid-cols-2 gap-2 bg-slate-900/60 p-1 rounded-xl">
+                <button id="mode-pvp" onclick="setGameMode('pvp')" class="py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-users"></i> 雙人對戰
+                </button>
+                <button id="mode-ai" onclick="setGameMode('ai')" class="py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 text-slate-400 hover:text-white flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-robot"></i> 電腦對戰
+                </button>
+            </div>
+
+            <!-- AI Difficulty Level (Hidden by default in PvP mode) -->
+            <div id="ai-difficulty-container" class="hidden flex items-center justify-between bg-slate-800/40 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                <span class="text-xs text-slate-400 font-medium">AI 難度選單：</span>
+                <div class="flex gap-1">
+                    <button id="diff-easy" onclick="setAIDifficulty('easy')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                        簡單
+                    </button>
+                    <button id="diff-hard" onclick="setAIDifficulty('hard')" class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white">
+                        困難 (無敵)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scoreboard -->
+        <div class="glass-panel w-full p-3 sm:p-4 rounded-2xl grid grid-cols-3 gap-2 text-center">
+            <div class="p-2 rounded-xl bg-cyan-950/30 border border-cyan-500/20">
+                <div class="text-xs text-cyan-400 font-semibold mb-0.5" id="p1-label">玩家 X</div>
+                <div id="score-x" class="text-2xl sm:text-3xl font-black glow-x">0</div>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-800/40 border border-slate-700/30">
+                <div class="text-xs text-slate-400 font-semibold mb-0.5">平手</div>
+                <div id="score-draws" class="text-2xl sm:text-3xl font-black text-slate-200">0</div>
+            </div>
+            <div class="p-2 rounded-xl bg-pink-950/30 border border-pink-500/20">
+                <div class="text-xs text-pink-400 font-semibold mb-0.5" id="p2-label">玩家 O</div>
+                <div id="score-o" class="text-2xl sm:text-3xl font-black glow-o">0</div>
+            </div>
+        </div>
+
+        <!-- Turn & Game Status Bar -->
+        <div id="status-bar" class="glass-panel w-full py-2.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 pulse-turn-x border">
+            <div id="status-icon" class="text-lg glow-x font-black">X</div>
+            <span id="status-text" class="text-sm sm:text-base font-bold tracking-wider text-slate-200">輪到 玩家 X 下棋</span>
+        </div>
+
+        <!-- Tic Tac Toe Game Grid -->
+        <div id="board" class="w-full aspect-square grid grid-cols-3 gap-2.5 sm:gap-3 p-3 glass-panel rounded-3xl relative">
+            <!-- 9 Board Cells -->
+            <button class="board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center" onclick="handleCellClick(0)"></button>
+            <button class="board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center" onclick="handleCellClick(1)"></button>
+            <button class="board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center" onclick="handleCellClick(2)"></button>
+            <button class="board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center" onclick="handleCellClick(3)"></button>
+            <button class="board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center" onclick="handleCellClick(4)"></button>
+            <button class="board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center" onclick="handleCellClick(5)"></button>
+            <button class="board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center" onclick="handleCellClick(6)"></button>
+            <button class="board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center" onclick="handleCellClick(7)"></button>
+            <button class="board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center" onclick="handleCellClick(8)"></button>
+        </div>
+
+        <!-- Action Buttons & Sound Toggle -->
+        <div class="w-full flex gap-3">
+            <button onclick="resetGame()" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg">
+                <i class="fa-solid fa-rotate-right"></i> 重設本局
+            </button>
+            <button onclick="resetScoreboard()" class="px-4 py-3 bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-semibold rounded-xl border border-slate-800 transition-all flex items-center justify-center gap-2 active:scale-95">
+                <i class="fa-solid fa-trash-can"></i> 清除分數
+            </button>
+            <button id="sound-btn" onclick="toggleSound()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-semibold rounded-xl border border-slate-700 transition-all flex items-center justify-center active:scale-95">
+                <i class="fa-solid fa-volume-high text-lg"></i>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-6 text-center text-xs text-slate-500">
+        <p>霓光風格 HTML/JS 井字遊戲 • Web Audio API 音效授權</p>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        // Game State Variables
+        let boardState = ["", "", "", "", "", "", "", "", ""];
+        let currentPlayer = "X"; // X or O
+        let isGameActive = true;
+        let gameMode = "pvp"; // 'pvp' or 'ai'
+        let aiDifficulty = "easy"; // 'easy' or 'hard'
+        let soundEnabled = true;
+
+        // Score Tracking
+        let scores = { X: 0, O: 0, draws: 0 };
+
+        // Winning Combinations
+        const WINNING_COMBOS = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+            [0, 4, 8], [2, 4, 6]             // Diagonals
+        ];
+
+        // Web Audio API Audio Synthesizer
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSynthesizedSound(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'clickX') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now); // A4
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'clickO') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(587.33, now); // D5
+                    osc.frequency.exponentialRampToValueAtTime(293.66, now + 0.08);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'win') {
+                    // Arpeggio Win Fanfare
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                    notes.forEach((freq, idx) => {
+                        const oscN = audioCtx.createOscillator();
+                        const gainN = audioCtx.createGain();
+                        oscN.connect(gainN);
+                        gainN.connect(audioCtx.destination);
+                        oscN.type = 'sine';
+                        oscN.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        gainN.gain.setValueAtTime(0.2, now + idx * 0.08);
+                        gainN.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+                        oscN.start(now + idx * 0.08);
+                        oscN.stop(now + idx * 0.08 + 0.25);
+                    });
+                } else if (type === 'draw') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.linearRampToValueAtTime(150, now + 0.25);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (e) {
+                console.error("Audio error:", e);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById("sound-btn");
+            if (soundEnabled) {
+                btn.innerHTML = `<i class="fa-solid fa-volume-high text-lg"></i>`;
+                btn.className = "px-4 py-3 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-semibold rounded-xl border border-slate-700 transition-all flex items-center justify-center active:scale-95";
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-volume-xmark text-lg"></i>`;
+                btn.className = "px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-500 font-semibold rounded-xl border border-slate-700 transition-all flex items-center justify-center active:scale-95";
+            }
+        }
+
+        // Initialize Game Mode
+        function setGameMode(mode) {
+            gameMode = mode;
+            const pvpBtn = document.getElementById("mode-pvp");
+            const aiBtn = document.getElementById("mode-ai");
+            const aiDiffBox = document.getElementById("ai-difficulty-container");
+            const p2Label = document.getElementById("p2-label");
+
+            if (mode === 'pvp') {
+                pvpBtn.className = "py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-2";
+                aiBtn.className = "py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 text-slate-400 hover:text-white flex items-center justify-center gap-2";
+                aiDiffBox.classList.add("hidden");
+                p2Label.innerText = "玩家 O";
+            } else {
+                aiBtn.className = "py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 bg-pink-500 text-white shadow-lg shadow-pink-500/30 flex items-center justify-center gap-2";
+                pvpBtn.className = "py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 text-slate-400 hover:text-white flex items-center justify-center gap-2";
+                aiDiffBox.classList.remove("hidden");
+                p2Label.innerText = "電腦 O";
+            }
+
+            resetGame();
+        }
+
+        function setAIDifficulty(diff) {
+            aiDifficulty = diff;
+            const easyBtn = document.getElementById("diff-easy");
+            const hardBtn = document.getElementById("diff-hard");
+
+            if (diff === 'easy') {
+                easyBtn.className = "px-2.5 py-1 text-xs font-semibold rounded-md transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+                hardBtn.className = "px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white";
+            } else {
+                hardBtn.className = "px-2.5 py-1 text-xs font-semibold rounded-md transition-all bg-rose-500/20 text-rose-400 border border-rose-500/40";
+                easyBtn.className = "px-2.5 py-1 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white";
+            }
+            resetGame();
+        }
+
+        // Handle Player Move
+        function handleCellClick(index) {
+            if (boardState[index] !== "" || !isGameActive) return;
+
+            // Player moves
+            makeMove(index, currentPlayer);
+
+            // Check if game continues and if it's AI turn
+            if (isGameActive && gameMode === 'ai' && currentPlayer === 'O') {
+                // Disable user clicks during AI turn
+                isGameActive = false;
+                setTimeout(() => {
+                    isGameActive = true;
+                    makeAIMove();
+                }, 450);
+            }
+        }
+
+        function makeMove(index, player) {
+            boardState[index] = player;
+            const cells = document.querySelectorAll(".board-cell");
+            const cell = cells[index];
+
+            cell.innerText = player;
+            cell.classList.add("occupied");
+
+            if (player === 'X') {
+                cell.classList.add("glow-x");
+                playSynthesizedSound('clickX');
+            } else {
+                cell.classList.add("glow-o");
+                playSynthesizedSound('clickO');
+            }
+
+            // Check Win or Draw
+            if (checkWin(player)) {
+                handleWin(player);
+            } else if (boardState.every(c => c !== "")) {
+                handleDraw();
+            } else {
+                // Switch turn
+                currentPlayer = currentPlayer === "X" ? "O" : "X";
+                updateStatusDisplay();
+            }
+        }
+
+        function checkWin(player) {
+            return WINNING_COMBOS.some(combo => {
+                if (combo.every(index => boardState[index] === player)) {
+                    highlightWinningCells(combo, player);
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        function highlightWinningCells(combo, player) {
+            const cells = document.querySelectorAll(".board-cell");
+            combo.forEach(idx => {
+                cells[idx].classList.add("winning-cell", player === 'X' ? "win-x" : "win-o");
+            });
+        }
+
+        function handleWin(winner) {
+            isGameActive = false;
+            scores[winner]++;
+            updateScoresDisplay();
+            playSynthesizedSound('win');
+
+            // Trigger Particle Confetti
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: winner === 'X' ? ['#06b6d4', '#38bdf8', '#ffffff'] : ['#ec4899', '#f472b6', '#ffffff']
+                });
+            }
+
+            const statusBar = document.getElementById("status-bar");
+            const statusIcon = document.getElementById("status-icon");
+            const statusText = document.getElementById("status-text");
+
+            const winnerName = winner === 'X' ? '玩家 X' : (gameMode === 'ai' ? '電腦 O' : '玩家 O');
+
+            statusIcon.className = `text-lg font-black ${winner === 'X' ? 'glow-x' : 'glow-o'}`;
+            statusIcon.innerText = winner;
+            statusText.innerText = `🎉 恭喜！${winnerName} 獲勝！`;
+
+            statusBar.className = `glass-panel w-full py-2.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 border ${winner === 'X' ? 'pulse-turn-x' : 'pulse-turn-o'}`;
+        }
+
+        function handleDraw() {
+            isGameActive = false;
+            scores.draws++;
+            updateScoresDisplay();
+            playSynthesizedSound('draw');
+
+            const statusBar = document.getElementById("status-bar");
+            const statusIcon = document.getElementById("status-icon");
+            const statusText = document.getElementById("status-text");
+
+            statusIcon.className = "text-lg text-slate-400 font-black";
+            statusIcon.innerText = "🤝";
+            statusText.innerText = "雙方平手，不分勝負！";
+
+            statusBar.className = "glass-panel w-full py-2.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 border border-slate-700";
+        }
+
+        function updateStatusDisplay() {
+            const statusBar = document.getElementById("status-bar");
+            const statusIcon = document.getElementById("status-icon");
+            const statusText = document.getElementById("status-text");
+
+            if (currentPlayer === 'X') {
+                statusIcon.className = "text-lg glow-x font-black";
+                statusIcon.innerText = "X";
+                statusText.innerText = "輪到 玩家 X 下棋";
+                statusBar.className = "glass-panel w-full py-2.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 pulse-turn-x border";
+            } else {
+                statusIcon.className = "text-lg glow-o font-black";
+                statusIcon.innerText = "O";
+                statusText.innerText = gameMode === 'ai' ? "電腦 O 思考中..." : "輪到 玩家 O 下棋";
+                statusBar.className = "glass-panel w-full py-2.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 pulse-turn-o border";
+            }
+        }
+
+        function updateScoresDisplay() {
+            document.getElementById("score-x").innerText = scores.X;
+            document.getElementById("score-o").innerText = scores.O;
+            document.getElementById("score-draws").innerText = scores.draws;
+        }
+
+        // AI Logic
+        function makeAIMove() {
+            if (!isGameActive) return;
+
+            let targetIndex;
+
+            if (aiDifficulty === 'easy') {
+                // Easy: Random available move
+                const availableIndices = boardState
+                    .map((val, idx) => val === "" ? idx : null)
+                    .filter(val => val !== null);
+
+                targetIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+            } else {
+                // Hard: Unbeatable Minimax Algorithm
+                targetIndex = getBestMinimaxMove();
+            }
+
+            if (targetIndex !== undefined && targetIndex !== null) {
+                makeMove(targetIndex, 'O');
+            }
+        }
+
+        function getBestMinimaxMove() {
+            let bestScore = -Infinity;
+            let bestMove = null;
+
+            for (let i = 0; i < 9; i++) {
+                if (boardState[i] === "") {
+                    boardState[i] = "O";
+                    let score = minimax(boardState, 0, false);
+                    boardState[i] = "";
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = i;
+                    }
+                }
+            }
+            return bestMove;
+        }
+
+        function minimax(board, depth, isMaximizing) {
+            if (checkWinningBoard(board, "O")) return 10 - depth;
+            if (checkWinningBoard(board, "X")) return depth - 10;
+            if (board.every(cell => cell !== "")) return 0;
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === "") {
+                        board[i] = "O";
+                        let score = minimax(board, depth + 1, false);
+                        board[i] = "";
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === "") {
+                        board[i] = "X";
+                        let score = minimax(board, depth + 1, true);
+                        board[i] = "";
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        function checkWinningBoard(board, player) {
+            return WINNING_COMBOS.some(combo => combo.every(idx => board[idx] === player));
+        }
+
+        // Reset functions
+        function resetGame() {
+            boardState = ["", "", "", "", "", "", "", "", ""];
+            currentPlayer = "X";
+            isGameActive = true;
+
+            const cells = document.querySelectorAll(".board-cell");
+            cells.forEach(cell => {
+                cell.innerText = "";
+                cell.className = "board-cell rounded-2xl text-4xl sm:text-6xl font-black flex items-center justify-center";
+            });
+
+            updateStatusDisplay();
+        }
+
+        function resetScoreboard() {
+            scores = { X: 0, O: 0, draws: 0 };
+            updateScoresDisplay();
+            resetGame();
+        }
+
+        // Initialize UI on load
+        updateStatusDisplay();
+    </script>
+</body>
+</html>
