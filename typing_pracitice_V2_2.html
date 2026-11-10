@@ -312,7 +312,7 @@
 
 <div class="container">
     <div class="header-area">
-        <h1>英打速度測試</h1>
+        <h1 onclick="clickCounter();">英打速度測試</h1>
         <!-- 右上角：完成次數、最佳成績與上傳按鈕 -->
         <div class="best-score-card">
             <div class="best-score-header">
@@ -828,6 +828,16 @@
         document.getElementById('resKPM').textContent = kpm;
 
         resultModal.style.display = 'flex';
+    }
+
+    let c_counter = 0;
+    function clickCounter(){
+        c_counter++;
+
+        if (c_counter >= 5)
+        {
+            window.open('typing_practice_fy_V1.html', '_blank', 'noopener,noreferrer');
+        }
     }
 
     timerSelect.addEventListener('change', () => initGame(false));
