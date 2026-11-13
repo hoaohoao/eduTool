@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學生抽籤與集星紀錄系統（時鐘轉盤版）</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Microsoft JhengHei", "微軟正黑體", Arial, sans-serif;
+        }
+        body {
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 95vw;
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background-color: #007bff;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover:not(:disabled) { background-color: #218838; }
+        .btn-warning { background-color: #ffc107; color: #212529; }
+        .btn-warning:hover:not(:disabled) { background-color: #e0a800; }
+        .btn-danger { background-color: #dc3545; color: #ffffff; }
+        .btn-danger:hover:not(:disabled) { background-color: #c82333; }
+        .btn-info { background-color: #17a2b8; }
+        .btn-info:hover:not(:disabled) { background-color: #138496; }
+
+        /* 時鐘轉盤區塊樣式 */
+        .clock-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #fdfdfd;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+        }
+        #clockCanvas {
+            max-width: 100%;
+            height: auto;
+            filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.12));
+        }
+        .clock-controls {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        #btnSpinControl {
+            font-size: 18px;
+            padding: 12px 32px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            min-width: 180px;
+        }
+        #btnSpinControl:active:not(:disabled) {
+            transform: scale(0.96);
+        }
+        #clockStatusText {
+            font-size: 16px;
+            font-weight: bold;
+            color: #495057;
+            min-height: 24px;
+        }
+        
+        /* 原有的學生星星格子樣式 */
+        .student-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .student-card {
+            width: 120px;
+            height: 120px;
+            background: #ffffff;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.1s, border-color 0.1s, transform 0.1s;
+            text-align: center;
+            padding: 5px;
+        }
+        .student-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .student-card .stars {
+            color: #ffc107;
+            margin-top: 6px;
+            word-break: break-all;
+            font-size: 14px;
+        }
+        /* 中獎結果樣式 */
+        .student-card.winner {
+            background-color: #00008b !important;
+            color: #ffffff !important;
+            border-color: #00005b !important;
+        }
+
+        /* 彈窗樣式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 320px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>學生抽籤與集星紀錄</h1>
+    
+    <div class="toolbar">
+        <button id="btnInit">初始化</button>
+        <div class="input-group">
+            <label>班級名稱：</label>
+            <input type="text" id="txtClass" placeholder="例如：三年一班" value="三年一班">
+        </div>
+        <div class="input-group">
+            <label>學生人數：</label>
+            <input type="number" id="txtStudentAmount" min="1" value="30" style="width: 80px;">
+        </div>
+        
+        <button id="btnExport" class="btn-success">匯出 CSV</button>
+        <button id="btnSendGAS" class="btn-info">上傳至 Google Sheet</button>
+
+        <a href="https://docs.google.com/spreadsheets/d/10Zsqhq-ZMRNOPL94S9L_QSMuYYncYOz7huZXD_comO0" target="_blank">google暫存的表單</a>
+    </div>
+
+    <!-- 時鐘轉盤抽籤區 -->
+    <div class="clock-section">
+        <canvas id="clockCanvas" width="360" height="360"></canvas>
+        <div class="clock-controls">
+            <button id="btnSpinControl" class="btn-warning">開始抽籤</button>
+            <div id="clockStatusText">請點擊「開始抽籤」（或按空白鍵）啟動轉盤</div>
+        </div>
+    </div>
+
+    <!-- 原本記錄小星星的格子區 -->
+    <div class="student-grid" id="flpStudents"></div>
+</div>
+
+<!-- 給獎懲彈窗 -->
+<div class="modal-overlay" id="rewardModal">
+    <div class="modal">
+        <h3 id="modalTitle">給星星</h3>
+        <p id="modalPrompt">請選擇：</p>
+        <div class="modal-buttons">
+            <button id="btnO" class="btn-success">O (加星)</button>
+            <button id="btnX" class="btn-warning">X</button>
+            <button id="btnCancel" style="background-color: #6c757d;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // 學生資料結構
+    let students = [];
+    let currentSelectedStudent = null;
+    let isFirstLoad = true;
+
+    // 時鐘轉盤狀態變數
+    // 'IDLE': 待機 | 'SPINNING': 快速旋轉中 | 'STOPPING': 按下停止後減速多跳約3號中
+    let wheelState = 'IDLE'; 
+    let currentAngle = 0; // 0 rad 代表正上方（12點鐘方向）
+    let angularVelocity = 0;
+    let stopStartAngle = 0;
+    let stopTargetAngle = 0;
+    let stopStartTime = 0;
+    let stopDuration = 750; // 減速滑行時間 (毫秒)
+    let animFrameId = null;
+    let lastTickIndex = -1;
+
+    // Google Apps Script Web App URL
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwyOYAvhM_jU2lTpcRPF6aPBGhZYTAl1np28LPCH3x6LXClcdqJBKoYfTwsYJ7pmeuA9A/exec";
+
+    // Web Audio API 音效處理
+    let audioCtx = null;
+
+    function initAudioContext() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    // 指針經過刻度時的清脆滴答聲
+    function playTickSound() {
+        initAudioContext();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(850, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.03);
+    }
+
+    // 語音播放函式
+    function speakNumber(seatNumber) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(`${seatNumber}號`);
+            utterance.lang = 'zh-TW';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // 中獎音效
+    function playWinSound() {
+        initAudioContext();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+    }
+
+    // ==========================================
+    // 時鐘轉盤繪製與物理計算邏輯
+    // ==========================================
+    const canvas = document.getElementById('clockCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function getIndexFromAngle(angle, count) {
+        if (count <= 0) return -1;
+        const TWO_PI = Math.PI * 2;
+        const normalized = ((angle % TWO_PI) + TWO_PI) % TWO_PI;
+        const sliceAngle = TWO_PI / count;
+        const shifted = (normalized + sliceAngle / 2) % TWO_PI;
+        return Math.floor(shifted / sliceAngle);
+    }
+
+    function drawClockWheel() {
+        const width = canvas.width;
+        const height = canvas.height;
+        const cx = width / 2;
+        const cy = height / 2;
+        const radius = Math.min(cx, cy) - 16;
+        const count = students.length;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // 1. 繪製外框錶殼
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius + 10, 0, Math.PI * 2);
+        ctx.fillStyle = '#343a40';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#adb5bd';
+        ctx.stroke();
+
+        if (count === 0) return;
+
+        const TWO_PI = Math.PI * 2;
+        const sliceAngle = TWO_PI / count;
+        const activeIndex = getIndexFromAngle(currentAngle, count);
+
+        // 2. 繪製每個座號的扇形與刻度
+        for (let i = 0; i < count; i++) {
+            const centerAngle = -Math.PI / 2 + i * sliceAngle;
+            const startAngle = centerAngle - sliceAngle / 2;
+            const endAngle = centerAngle + sliceAngle / 2;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, radius, startAngle, endAngle);
+            ctx.closePath();
+
+            if (i === activeIndex) {
+                ctx.fillStyle = wheelState === 'IDLE' && lastTickIndex !== -1 ? '#ffe066' : '#fff3bf';
+            } else {
+                ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f8f9fa';
+            }
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(startAngle) * (radius * 0.65), cy + Math.sin(startAngle) * (radius * 0.65));
+            ctx.lineTo(cx + Math.cos(startAngle) * radius, cy + Math.sin(startAngle) * radius);
+            ctx.strokeStyle = '#dee2e6';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(
+                cx + Math.cos(centerAngle) * (radius - 6),
+                cy + Math.sin(centerAngle) * (radius - 6),
+                i === activeIndex ? 3.5 : 2,
+                0,
+                TWO_PI
+            );
+            ctx.fillStyle = i === activeIndex ? '#dc3545' : '#6c757d';
+            ctx.fill();
+
+            const textRadius = radius - 26;
+            const tx = cx + Math.cos(centerAngle) * textRadius;
+            const ty = cy + Math.sin(centerAngle) * textRadius;
+
+            ctx.save();
+            ctx.translate(tx, ty);
+            const fontSize = count > 40 ? 11 : (count > 25 ? 13 : 16);
+            ctx.font = (i === activeIndex ? 'bold ' : '') + `${fontSize}px "Microsoft JhengHei", Arial`;
+            ctx.fillStyle = i === activeIndex ? '#d63384' : '#212529';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(students[i].seatNumber, 0, 0);
+            ctx.restore();
+        }
+
+        // 3. 繪製時鐘指針
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(currentAngle - Math.PI / 2);
+
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(-22, -4);
+        ctx.lineTo(radius - 36, -1.5);
+        ctx.lineTo(radius - 36, 1.5);
+        ctx.lineTo(-22, 4);
+        ctx.closePath();
+        ctx.fillStyle = '#dc3545';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(radius - 40, -6);
+        ctx.lineTo(radius - 24, 0);
+        ctx.lineTo(radius - 40, 6);
+        ctx.closePath();
+        ctx.fillStyle = '#dc3545';
+        ctx.fill();
+
+        ctx.restore();
+
+        // 4. 繪製中心軸心圓鈕
+        ctx.beginPath();
+        ctx.arc(cx, cy, 12, 0, TWO_PI);
+        ctx.fillStyle = '#343a40';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, TWO_PI);
+        ctx.fillStyle = '#ffc107';
+        ctx.fill();
+    }
+
+    // 動畫主迴圈
+    function animateWheel(timestamp) {
+        const count = students.length;
+        if (count === 0) return;
+
+        if (wheelState === 'SPINNING') {
+            // 高速旋轉（大幅加快轉速）
+            currentAngle += angularVelocity;
+        } else if (wheelState === 'STOPPING') {
+            if (!stopStartTime) stopStartTime = timestamp;
+            const elapsed = timestamp - stopStartTime;
+            const progress = Math.min(elapsed / stopDuration, 1);
+
+            // Cubic Ease-Out 減速曲線：模擬指針滑行多跳約 3 格後自然停下
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            currentAngle = stopStartAngle + (stopTargetAngle - stopStartAngle) * easeOut;
+
+            if (progress >= 1) {
+                currentAngle = stopTargetAngle;
+                wheelState = 'IDLE';
+                drawClockWheel();
+                handleWheelStopped();
+                return;
+            }
+        }
+
+        // 檢查是否跨過新的座號刻度，若是則播放滴答聲
+        const currentIndex = getIndexFromAngle(currentAngle, count);
+        if (currentIndex !== lastTickIndex) {
+            lastTickIndex = currentIndex;
+            playTickSound();
+            document.getElementById('clockStatusText').textContent = `目前指針經過：${students[currentIndex].seatNumber} 號`;
+        }
+
+        drawClockWheel();
+
+        if (wheelState === 'SPINNING' || wheelState === 'STOPPING') {
+            animFrameId = requestAnimationFrame(animateWheel);
+        }
+    }
+
+    // 轉盤完全停止後的結算處理
+    function handleWheelStopped() {
+        const winnerIndex = getIndexFromAngle(currentAngle, students.length);
+        const winner = students[winnerIndex];
+
+        winner.element.classList.add('winner');
+        winner.element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        document.getElementById('clockStatusText').innerHTML = `<span style="color:#00008b; font-size: 20px;">🎉 抽中座號：${winner.seatNumber} 號！</span>`;
+
+        // 恢復按鈕狀態
+        const btnSpin = document.getElementById('btnSpinControl');
+        btnSpin.disabled = false;
+        btnSpin.textContent = '開始抽籤';
+        btnSpin.className = 'btn-warning';
+        setToolbarButtonsEnabled(true);
+
+        playWinSound();
+        speakNumber(winner.seatNumber);
+
+        setTimeout(() => {
+            alert(`恭喜抽中：${winner.seatNumber} 號！`);
+        }, 150);
+    }
+
+    // 觸發開始/停止的核心函式
+    function toggleSpinControl() {
+        if (students.length === 0) {
+            alert("請先按下 [初始化] 建立學生資料！");
+            return;
+        }
+
+        const btnSpin = document.getElementById('btnSpinControl');
+
+        if (wheelState === 'IDLE') {
+            // 階段 1：啟動高速旋轉
+            resetAllCardColors();
+            setToolbarButtonsEnabled(false); // 僅鎖定上方工具列，保持「停止指針」可點擊
+
+            wheelState = 'SPINNING';
+            angularVelocity = 0.58; // 快速旋轉角速度（約每秒 5.5 圈）
+            lastTickIndex = getIndexFromAngle(currentAngle, students.length);
+
+            btnSpin.disabled = false;
+            btnSpin.textContent = '停止指針';
+            btnSpin.className = 'btn-danger';
+            document.getElementById('clockStatusText').textContent = '轉盤高速轉動中...請按「停止指針」！';
+
+            animFrameId = requestAnimationFrame(animateWheel);
+
+        } else if (wheelState === 'SPINNING') {
+            // 階段 2：按下停止按鈕 -> 計算「再多跳 3 號左右（2~4格隨機）」的目標位置
+            wheelState = 'STOPPING';
+            btnSpin.disabled = true; // 減速滑行期間防止重複連點
+            btnSpin.textContent = '減速停止中...';
+
+            const count = students.length;
+            const sliceAngle = (Math.PI * 2) / count;
+            const TWO_PI = Math.PI * 2;
+
+            // 多跳 2 ~ 4 格（平均 3 號）
+            const extraSteps = 2 + Math.floor(Math.random() * 3); // 2, 3, 或 4 格
+            const currentIndex = getIndexFromAngle(currentAngle, count);
+            const targetIndex = (currentIndex + extraSteps) % count;
+
+            const normalizedCurrent = ((currentAngle % TWO_PI) + TWO_PI) % TWO_PI;
+            const targetBaseAngle = targetIndex * sliceAngle;
+
+            // 計算順時針往前到達 targetIndex 所需增加的角度差
+            let delta = targetBaseAngle - normalizedCurrent;
+            if (delta <= 0) {
+                delta += TWO_PI;
+            }
+            // 若因為扇形邊界導致實際移動角度小於 (extraSteps - 0.5) 格，補上一圈確保視覺上是往前多跳約3格
+            if (delta < sliceAngle * (extraSteps - 0.5)) {
+                delta += TWO_PI;
+            }
+
+            // 加入扇形內 ±25% 的微小隨機落點，讓每次停止更具真實自然感
+            const jitter = (Math.random() - 0.5) * (sliceAngle * 0.5);
+
+            stopStartAngle = currentAngle;
+            stopTargetAngle = currentAngle + delta + jitter;
+            stopStartTime = 0;
+            stopDuration = 750; // 約 0.75 秒俐落減速停下
+        }
+    }
+
+    document.getElementById('btnSpinControl').addEventListener('click', toggleSpinControl);
+
+    // 支援鍵盤空白鍵快速開始/停止（排除輸入框與彈窗開啟時）
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
+            const modalVisible = document.getElementById('rewardModal').style.display === 'flex';
+            const swalVisible = document.querySelector('.swal2-container') !== null;
+            if (!modalVisible && !swalVisible && wheelState !== 'STOPPING') {
+                e.preventDefault();
+                toggleSpinControl();
+            }
+        }
+    });
+
+    // 修正：僅控制上方工具列按鈕，不影響轉盤的「停止指針」按鈕
+    function setToolbarButtonsEnabled(enabled) {
+        document.getElementById('btnInit').disabled = !enabled;
+        document.getElementById('btnExport').disabled = !enabled;
+        document.getElementById('btnSendGAS').disabled = !enabled;
+    }
+
+    // ==========================================
+    // 1. 初始化學生格子與轉盤
+    // ==========================================
+    document.getElementById('btnInit').addEventListener('click', () => {
+        const amountInput = document.getElementById('txtStudentAmount').value;
+        const amount = parseInt(amountInput, 10);
+
+        if (isNaN(amount) || amount <= 0) {
+            alert("請輸入正確的學生人數（正整數）！");
+            return;
+        }
+
+        const container = document.getElementById('flpStudents');
+        container.innerHTML = '';
+        students = [];
+
+        for (let i = 1; i <= amount; i++) {
+            const student = {
+                seatNumber: i,
+                starCount: 0,
+                element: null
+            };
+
+            const card = document.createElement('div');
+            card.className = 'student-card';
+            student.element = card;
+
+            updateCardText(student);
+
+            card.addEventListener('click', () => openModal(student));
+
+            students.push(student);
+            container.appendChild(card);
+        }
+
+        wheelState = 'IDLE';
+        currentAngle = 0;
+        lastTickIndex = -1;
+        const btnSpin = document.getElementById('btnSpinControl');
+        btnSpin.disabled = false;
+        btnSpin.textContent = '開始抽籤';
+        btnSpin.className = 'btn-warning';
+        document.getElementById('clockStatusText').textContent = '請點擊「開始抽籤」（或按空白鍵）啟動轉盤';
+        drawClockWheel();
+
+        if (!isFirstLoad) {
+            alert(`已成功初始化 ${amount} 位學生格子與時鐘轉盤！`);
+        }
+        isFirstLoad = false;
+    });
+
+    function updateCardText(student) {
+        const stars = '★'.repeat(student.starCount);
+        student.element.innerHTML = `
+            <div>${student.seatNumber} 號</div>
+            <div class="stars">${stars}</div>
+        `;
+        student.element.classList.remove('winner');
+    }
+
+    function resetAllCardColors() {
+        students.forEach(s => {
+            s.element.classList.remove('winner');
+        });
+    }
+
+    // ==========================================
+    // 3. 點擊卡片彈窗處理
+    // ==========================================
+    const modal = document.getElementById('rewardModal');
+
+    function openModal(student) {
+        currentSelectedStudent = student;
+        document.getElementById('modalTitle').textContent = `給 - ${student.seatNumber} 號`;
+        document.getElementById('modalPrompt').textContent = `請選擇對 ${student.seatNumber} 號：`;
+        modal.style.display = 'flex';
+    }
+
+    document.getElementById('btnO').addEventListener('click', () => {
+        if (currentSelectedStudent) {
+            currentSelectedStudent.starCount++;
+            updateCardText(currentSelectedStudent);
+        }
+        closeModal();
+    });
+
+    document.getElementById('btnX').addEventListener('click', closeModal);
+    document.getElementById('btnCancel').addEventListener('click', closeModal);
+
+    function closeModal() {
+        modal.style.display = 'none';
+        currentSelectedStudent = null;
+    }
+
+    // ==========================================
+    // 4. 匯出 CSV 檔案
+    // ==========================================
+    document.getElementById('btnExport').addEventListener('click', () => {
+        if (students.length === 0) {
+            alert("目前沒有可匯出的學生資料！");
+            return;
+        }
+
+        const classNameInput = document.getElementById('txtClass').value.trim();
+        const className = classNameInput || "未命名班級";
+
+        const now = new Date();
+        const timeStamp = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') + "_" +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+
+        const fileName = `${className}_${timeStamp}.csv`;
+
+        let csvContent = "\uFEFF座號,小星星數\n";
+        students.forEach(s => {
+            csvContent += `${s.seatNumber},${s.starCount}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+
+        link.setAttribute("href", url);
+        link.setAttribute("download", fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        alert(`匯出成功！檔案已下載為：${fileName}`);
+    });
+
+    // ==========================================
+    // 5. 傳送資料至 Google Apps Script (GAS)
+    // ==========================================
+    document.getElementById('btnSendGAS').addEventListener('click', async () => {
+        if (students.length === 0) {
+            alert("目前沒有學生資料可上傳！");
+            return;
+        }
+
+        const { value: inputCode } = await Swal.fire({
+            title: '請輸入暗號',
+            input: 'password',
+            inputPlaceholder: '請輸入驗證密碼',
+            showCancelButton: true
+        });
+
+        if (inputCode === null) return;
+        if (inputCode.trim() === "") {
+            alert("暗號不可為空白！");
+            return;
+        }
+
+        const classNameInput = document.getElementById('txtClass').value.trim();
+        const className = classNameInput || "未命名班級";
+        const amount = students.length;
+
+        const now = new Date();
+        const datetime = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') + "_" +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+
+        const payload = {
+            code: inputCode.trim(),
+            className: className,
+            datetime: datetime,
+            amount: amount,
+            students: students.map(s => ({
+                seatNumber: s.seatNumber,
+                starCount: s.starCount
+            }))
+        };
+
+        const btn = document.getElementById('btnSendGAS');
+        btn.disabled = true;
+        btn.textContent = "傳送中...";
+
+        fetch(GAS_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === "success") {
+                alert("傳送成功！" + result.message);
+            } else {
+                alert("傳送失敗：" + result.message);
+            }
+        })
+        .catch(err => {
+            alert("發送過程發生錯誤，請確認 GAS URL 是否設定正確！");
+            console.error(err);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = "上傳至 Google Sheet";
+        });
+    });
+
+    // 預設執行一次初始化
+    document.getElementById('btnInit').click();
+</script>
+
+</body>
+</html>
