@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>台灣象棋暗棋 - 標準 / 變體雙模式</title>
+  <style>
+    :root {
+      --bg-color: #1f1b18;
+      --board-bg: #d9a05b;
+      --board-border: #6e3f19;
+      --cell-line: #4a2a0f;
+      --piece-bg: #f7e6c4;
+      --piece-hidden: #8c2d19;
+      --red-color: #c91f1f;
+      --black-color: #1a1a1a;
+      --highlight-move: rgba(46, 204, 113, 0.75);
+      --highlight-capture: rgba(231, 76, 60, 0.75);
+    }
+
+    * { box-sizing: border-box; user-select: none; }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+      background-color: var(--bg-color);
+      color: #f5efe6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: 1.6rem;
+      letter-spacing: 2px;
+      color: #f3c677;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    select, button {
+      padding: 8px 12px;
+      font-size: 0.95rem;
+      border-radius: 6px;
+      border: 1px solid #8c6239;
+      background-color: #362920;
+      color: #f5efe6;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    select:hover, button:hover {
+      background-color: #4d3b2f;
+    }
+
+    button.primary {
+      background-color: #a84323;
+      border-color: #d46542;
+      font-weight: bold;
+    }
+
+    button.primary:hover {
+      background-color: #c2512d;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 680px;
+      background: #2b221b;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid #594333;
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+
+    .turn-badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      background: #44362b;
+    }
+
+    .turn-red { background: #9e1b1b; color: #fff; }
+    .turn-black { background: #111; color: #f3c677; border: 1px solid #666; }
+
+    .board-wrapper {
+      background: var(--board-border);
+      padding: 14px;
+      border-radius: 12px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 72px);
+      grid-template-rows: repeat(4, 72px);
+      background-color: var(--board-bg);
+      border: 2px solid var(--cell-line);
+    }
+
+    @media (max-width: 640px) {
+      .board {
+        grid-template-columns: repeat(8, 11vw);
+        grid-template-rows: repeat(4, 11vw);
+      }
+    }
+
+    .cell {
+      border: 1px solid var(--cell-line);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .cell.last-move {
+      background-color: rgba(255, 235, 59, 0.25);
+    }
+
+    .cell.valid-move::after {
+      content: "";
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background-color: var(--highlight-move);
+      box-shadow: 0 0 8px #2ecc71;
+      pointer-events: none;
+    }
+
+    .cell.valid-capture {
+      background-color: rgba(231, 76, 60, 0.35);
+      box-shadow: inset 0 0 0 3px var(--highlight-capture);
+    }
+
+    .piece {
+      width: 82%;
+      height: 82%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.65rem;
+      font-weight: bold;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.45), inset 0 2px 3px rgba(255,255,255,0.5);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    @media (max-width: 640px) {
+      .piece { font-size: 1.15rem; }
+    }
+
+    .piece.hidden {
+      background: radial-gradient(circle at 35% 35%, #b33b24, var(--piece-hidden));
+      border: 2px solid #59180b;
+    }
+
+    .piece.hidden::after {
+      content: "❖";
+      color: rgba(243, 198, 119, 0.35);
+      font-size: 1.2rem;
+    }
+
+    .piece.revealed {
+      background: radial-gradient(circle at 35% 35%, #fff6e3, var(--piece-bg));
+      border: 2px solid #b89058;
+    }
+
+    .piece.red {
+      color: var(--red-color);
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    .piece.black {
+      color: var(--black-color);
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    .piece.selected {
+      transform: scale(1.12) translateY(-3px);
+      box-shadow: 0 8px 14px rgba(0,0,0,0.6), 0 0 0 3px #f1c40f;
+      z-index: 5;
+    }
+
+    .captured-panel {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 680px;
+      margin-top: 12px;
+      gap: 12px;
+    }
+
+    .captured-box {
+      flex: 1;
+      background: #2b221b;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #594333;
+      min-height: 46px;
+      font-size: 0.9rem;
+    }
+
+    .captured-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+      font-weight: bold;
+    }
+
+    .rule-hint {
+      max-width: 680px;
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: #c4b5a5;
+      line-height: 1.5;
+      background: rgba(255,255,255,0.04);
+      padding: 10px 14px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>台灣象棋暗棋</h1>
+
+  <div class="controls">
+    <select id="gameMode">
+      <option value="ai-normal" selected>單人 vs 電腦 (普通)</option>
+      <option value="ai-easy">單人 vs 電腦 (簡單)</option>
+      <option value="pvp">雙人同機對戰</option>
+    </select>
+
+    <select id="ruleMode">
+      <option value="standard" selected>標準規則 (全走一格)</option>
+      <option value="variant">變體規則 (象飛田・馬走日・車衝鋒)</option>
+    </select>
+
+    <button class="primary" id="newGameBtn">重新開局</button>
+  </div>
+
+  <div class="status-bar">
+    <div id="turnIndicator" class="turn-badge">請翻開第一顆棋子</div>
+    <div id="sideInfo">紅方：未定 ｜ 黑方：未定</div>
+    <div id="stepCounter">無吃翻步數：0 / 50</div>
+  </div>
+
+  <div class="board-wrapper">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="captured-panel">
+    <div class="captured-box">
+      <div style="color:#ff7675;">紅方陣亡：</div>
+      <div class="captured-list" id="deadRed"></div>
+    </div>
+    <div class="captured-box">
+      <div style="color:#dfe6e9;">黑方陣亡：</div>
+      <div class="captured-list" id="deadBlack"></div>
+    </div>
+  </div>
+
+  <div class="rule-hint" id="ruleHint">
+    <strong>目前規則：標準模式</strong> — 除炮/包可隔一子跳吃外，所有棋子皆走上下左右相鄰一格；兵/卒可吃將/帥。
+  </div>
+
+  <script>
+    const ROWS = 4;
+    const COLS = 8;
+
+    const PIECE_DEFS = [
+      { side: 'red', rank: 1, name: '帥', count: 1, value: 100 },
+      { side: 'red', rank: 2, name: '仕', count: 2, value: 55 },
+      { side: 'red', rank: 3, name: '相', count: 2, value: 40 },
+      { side: 'red', rank: 4, name: '俥', count: 2, value: 30 },
+      { side: 'red', rank: 5, name: '傌', count: 2, value: 20 },
+      { side: 'red', rank: 6, name: '炮', count: 2, value: 45 },
+      { side: 'red', rank: 7, name: '兵', count: 5, value: 15 },
+      { side: 'black', rank: 1, name: '將', count: 1, value: 100 },
+      { side: 'black', rank: 2, name: '士', count: 2, value: 55 },
+      { side: 'black', rank: 3, name: '象', count: 2, value: 40 },
+      { side: 'black', rank: 4, name: '車', count: 2, value: 30 },
+      { side: 'black', rank: 5, name: '馬', count: 2, value: 20 },
+      { side: 'black', rank: 6, name: '包', count: 2, value: 45 },
+      { side: 'black', rank: 7, name: '卒', count: 5, value: 15 }
+    ];
+
+    let board = []; // length 32, elements: null or { id, side, rank, name, value, flipped }
+    let currentTurn = null; // 'red' or 'black'
+    let playerSide = null;  // in AI mode, human's side
+    let aiSide = null;
+    let selectedIdx = null;
+    let validActions = [];  // [{ to, type: 'move' | 'capture' }]
+    let lastMove = null;    // { from, to }
+    let deadRed = [];
+    let deadBlack = [];
+    let staleMoves = 0;
+    let gameOver = false;
+    let aiTimer = null;
+
+    const boardEl = document.getElementById('board');
+    const turnIndicatorEl = document.getElementById('turnIndicator');
+    const sideInfoEl = document.getElementById('sideInfo');
+    const stepCounterEl = document.getElementById('stepCounter');
+    const deadRedEl = document.getElementById('deadRed');
+    const deadBlackEl = document.getElementById('deadBlack');
+    const gameModeEl = document.getElementById('gameMode');
+    const ruleModeEl = document.getElementById('ruleMode');
+    const ruleHintEl = document.getElementById('ruleHint');
+
+    // Simple Web Audio sound effects (safe fallback if blocked)
+    const audioCtx = typeof AudioContext !== 'undefined' ? new AudioContext() : null;
+    function playTone(freq, duration = 0.08, type = 'triangle') {
+      if (!audioCtx) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function initGame() {
+      if (aiTimer) {
+        clearTimeout(aiTimer);
+        aiTimer = null;
+      }
+
+      const deck = [];
+      let idCounter = 1;
+      for (const def of PIECE_DEFS) {
+        for (let i = 0; i < def.count; i++) {
+          deck.push({
+            id: idCounter++,
+            side: def.side,
+            rank: def.rank,
+            name: def.name,
+            value: def.value,
+            flipped: false
+          });
+        }
+      }
+
+      // Fisher-Yates shuffle
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+
+      board = deck;
+      currentTurn = null;
+      playerSide = null;
+      aiSide = null;
+      selectedIdx = null;
+      validActions = [];
+      lastMove = null;
+      deadRed = [];
+      deadBlack = [];
+      staleMoves = 0;
+      gameOver = false;
+
+      updateRuleHint();
+      render();
+    }
+
+    function updateRuleHint() {
+      const isVariant = ruleModeEl.value === 'variant';
+      if (isVariant) {
+        ruleHintEl.innerHTML = '<strong>目前規則：變體模式</strong> — 除基本一格走法外，<strong>相/象可走田字（4格對角跳躍）</strong>、<strong>傌/馬可走日字（8方向跳躍）</strong>、<strong>俥/車可沿直線無阻礙衝鋒吃子</strong>；炮/包維持隔一子跳吃。';
+      } else {
+        ruleHintEl.innerHTML = '<strong>目前規則：標準模式</strong> — 除炮/包可隔一子跳吃外，所有棋子皆走上下左右相鄰一格；兵/卒可吃將/帥。';
+      }
+    }
+
+    function toRC(idx) {
+      return [Math.floor(idx / COLS), idx % COLS];
+    }
+
+    function toIdx(r, c) {
+      if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return -1;
+      return r * COLS + c;
+    }
+
+    function canCapture(attacker, target) {
+      if (!attacker || !target || !attacker.flipped || !target.flipped) return false;
+      if (attacker.side === target.side) return false;
+      // Cannon captures any enemy piece via screen
+      if (attacker.rank === 6) return true;
+      // Pawn (7) captures King (1) or Pawn (7)
+      if (attacker.rank === 7) return target.rank === 1 || target.rank === 7;
+      // King (1) cannot capture Pawn (7)
+      if (attacker.rank === 1 && target.rank === 7) return false;
+      // Higher rank (smaller number) captures lower or equal rank
+      return attacker.rank <= target.rank;
+    }
+
+    function getLegalMovesForPiece(idx, stateBoard = board, isVariant = ruleModeEl.value === 'variant') {
+      const piece = stateBoard[idx];
+      if (!piece || !piece.flipped) return [];
+
+      const actions = [];
+      const addedTargets = new Set();
+      const [r, c] = toRC(idx);
+
+      const addAction = (to, type) => {
+        if (to === -1 || addedTargets.has(to)) return;
+        addedTargets.add(to);
+        actions.push({ to, type });
+      };
+
+      const orthoDirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+      // 1. Standard orthogonal 1-step (applies to all pieces)
+      for (const [dr, dc] of orthoDirs) {
+        const to = toIdx(r + dr, c + dc);
+        if (to === -1) continue;
+        const target = stateBoard[to];
+        if (!target) {
+          addAction(to, 'move');
+        } else if (piece.rank !== 6 && canCapture(piece, target)) {
+          addAction(to, 'capture');
+        }
+      }
+
+      // 2. Cannon (rank 6) jumping capture
+      if (piece.rank === 6) {
+        for (const [dr, dc] of orthoDirs) {
+          let nr = r + dr;
+          let nc = c + dc;
+          let screenFound = false;
+          while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+            const curIdx = toIdx(nr, nc);
+            const cellPiece = stateBoard[curIdx];
+            if (!screenFound) {
+              if (cellPiece) screenFound = true;
+            } else {
+              if (cellPiece) {
+                if (canCapture(piece, cellPiece)) {
+                  addAction(curIdx, 'capture');
+                }
+                break;
+              }
+            }
+            nr += dr;
+            nc += dc;
+          }
+        }
+      }
+
+      // 3. Variant special moves
+      if (isVariant) {
+        // Elephant / 相 / 象 (rank 3): diagonal 2 steps (田字)
+        if (piece.rank === 3) {
+          const eleDirs = [[-2, -2], [-2, 2], [2, -2], [2, 2]];
+          for (const [dr, dc] of eleDirs) {
+            const to = toIdx(r + dr, c + dc);
+            if (to === -1) continue;
+            const target = stateBoard[to];
+            if (!target) {
+              addAction(to, 'move');
+            } else if (canCapture(piece, target)) {
+              addAction(to, 'capture');
+            }
+          }
+        }
+
+        // Rook / 俥 / 車 (rank 4): straight line slide & capture
+        if (piece.rank === 4) {
+          for (const [dr, dc] of orthoDirs) {
+            let nr = r + dr;
+            let nc = c + dc;
+            while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+              const to = toIdx(nr, nc);
+              const target = stateBoard[to];
+              if (!target) {
+                addAction(to, 'move');
+              } else {
+                if (canCapture(piece, target)) {
+                  addAction(to, 'capture');
+                }
+                break; // Blocked after first piece
+              }
+              nr += dr;
+              nc += dc;
+            }
+          }
+        }
+
+        // Knight / 傌 / 馬 (rank 5): L-shape jump (日字)
+        if (piece.rank === 5) {
+          const knightDirs = [
+            [-2, -1], [-2, 1], [2, -1], [2, 1],
+            [-1, -2], [-1, 2], [1, -2], [1, 2]
+          ];
+          for (const [dr, dc] of knightDirs) {
+            const to = toIdx(r + dr, c + dc);
+            if (to === -1) continue;
+            const target = stateBoard[to];
+            if (!target) {
+              addAction(to, 'move');
+            } else if (canCapture(piece, target)) {
+              addAction(to, 'capture');
+            }
+          }
+        }
+      }
+
+      return actions;
+    }
+
+    function hasAnyLegalAction(side, stateBoard = board) {
+      for (let i = 0; i < stateBoard.length; i++) {
+        const p = stateBoard[i];
+        if (!p) continue;
+        if (!p.flipped) return true; // Can flip unrevealed piece
+        if (p.side === side && getLegalMovesForPiece(i, stateBoard).length > 0) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function handleCellClick(idx) {
+      if (gameOver) return;
+      const isAiMode = gameModeEl.value.startsWith('ai');
+      if (isAiMode && currentTurn && currentTurn === aiSide) return;
+
+      const clickedPiece = board[idx];
+
+      // Case 1: Execute selected piece move/capture
+      if (selectedIdx !== null) {
+        const action = validActions.find(a => a.to === idx);
+        if (action) {
+          executeMove(selectedIdx, action.to, action.type);
+          return;
+        }
+      }
+
+      // Case 2: Flip an unrevealed piece
+      if (clickedPiece && !clickedPiece.flipped) {
+        flipPiece(idx);
+        return;
+      }
+
+      // Case 3: Select own revealed piece
+      if (clickedPiece && clickedPiece.flipped && clickedPiece.side === currentTurn) {
+        if (selectedIdx === idx) {
+          selectedIdx = null;
+          validActions = [];
+        } else {
+          selectedIdx = idx;
+          validActions = getLegalMovesForPiece(idx);
+          playTone(520, 0.04, 'sine');
+        }
+        render();
+        return;
+      }
+
+      // Otherwise deselect
+      selectedIdx = null;
+      validActions = [];
+      render();
+    }
+
+    function flipPiece(idx) {
+      const piece = board[idx];
+      if (!piece || piece.flipped) return;
+
+      piece.flipped = true;
+      selectedIdx = null;
+      validActions = [];
+      lastMove = { from: idx, to: idx };
+      staleMoves = 0;
+      playTone(380, 0.09, 'triangle');
+
+      // First flip determines sides
+      if (currentTurn === null) {
+        currentTurn = piece.side;
+        if (gameModeEl.value.startsWith('ai')) {
+          playerSide = piece.side;
+          aiSide = piece.side === 'red' ? 'black' : 'red';
+        }
+      }
+
+      endTurn();
+    }
+
+    function executeMove(from, to, type) {
+      const attacker = board[from];
+      const target = board[to];
+
+      if (type === 'capture' && target) {
+        if (target.side === 'red') deadRed.push(target.name);
+        else deadBlack.push(target.name);
+        staleMoves = 0;
+        playTone(190, 0.14, 'sawtooth');
+      } else {
+        staleMoves++;
+        playTone(300, 0.07, 'sine');
+      }
+
+      board[to] = attacker;
+      board[from] = null;
+      selectedIdx = null;
+      validActions = [];
+      lastMove = { from, to };
+
+      endTurn();
+    }
+
+    function endTurn() {
+      const nextTurn = currentTurn === 'red' ? 'black' : 'red';
+      currentTurn = nextTurn;
+
+      // Check win/draw conditions
+      const redAlive = board.some(p => p && p.side === 'red');
+      const blackAlive = board.some(p => p && p.side === 'black');
+
+      if (!redAlive) {
+        finishGame('黑方獲勝！（紅方全滅）');
+        return;
+      }
+      if (!blackAlive) {
+        finishGame('紅方獲勝！（黑方全滅）');
+        return;
+      }
+      if (staleMoves >= 50) {
+        finishGame('和局！（連續 50 步無翻棋或吃子）');
+        return;
+      }
+      if (!hasAnyLegalAction(currentTurn)) {
+        const winner = currentTurn === 'red' ? '黑方' : '紅方';
+        finishGame(`${winner}獲勝！（對手無棋可走困斃）`);
+        return;
+      }
+
+      render();
+
+      // Trigger AI if applicable
+      if (!gameOver && gameModeEl.value.startsWith('ai') && currentTurn === aiSide) {
+        aiTimer = setTimeout(runAiTurn, 420);
+      }
+    }
+
+    function finishGame(msg) {
+      gameOver = true;
+      render();
+      turnIndicatorEl.textContent = msg;
+      turnIndicatorEl.className = 'turn-badge';
+      turnIndicatorEl.style.background = '#27ae60';
+      turnIndicatorEl.style.color = '#fff';
+    }
+
+    // AI Logic (Safe, fast, non-blocking)
+    function runAiTurn() {
+      aiTimer = null;
+      if (gameOver || currentTurn !== aiSide) return;
+
+      const difficulty = gameModeEl.value; // 'ai-easy' or 'ai-normal'
+      const candidateActions = [];
+
+      // Collect all possible flips, moves, and captures
+      for (let i = 0; i < board.length; i++) {
+        const p = board[i];
+        if (!p) continue;
+        if (!p.flipped) {
+          candidateActions.push({ kind: 'flip', idx: i, score: 12 + Math.random() * 6 });
+        } else if (p.side === aiSide) {
+          const moves = getLegalMovesForPiece(i);
+          for (const m of moves) {
+            candidateActions.push({
+              kind: m.type,
+              from: i,
+              to: m.to,
+              score: 0
+            });
+          }
+        }
+      }
+
+      if (candidateActions.length === 0) return;
+
+      if (difficulty === 'ai-easy') {
+        // Easy AI: prefers captures slightly, otherwise random
+        for (const act of candidateActions) {
+          if (act.kind === 'capture') act.score = 40 + Math.random() * 20;
+          else if (act.kind === 'flip') act.score = 20 + Math.random() * 20;
+          else act.score = Math.random() * 20;
+        }
+      } else {
+        // Normal AI: tactical evaluation (capture value + danger evasion + safe flips)
+        const enemySide = aiSide === 'red' ? 'black' : 'red';
+
+        // Precompute squares threatened by enemy revealed pieces
+        const threatenedSquares = new Set();
+        for (let i = 0; i < board.length; i++) {
+          const ep = board[i];
+          if (ep && ep.flipped && ep.side === enemySide) {
+            const eMoves = getLegalMovesForPiece(i);
+            for (const em of eMoves) {
+              threatenedSquares.add(em.to);
+            }
+          }
+        }
+
+        for (const act of candidateActions) {
+          if (act.kind === 'capture') {
+            const attacker = board[act.from];
+            const target = board[act.to];
+            let score = (target ? target.value * 2.2 : 30);
+            if (threatenedSquares.has(act.from)) score += attacker.value * 0.8; // Escape while capturing
+            if (threatenedSquares.has(act.to)) score -= attacker.value * 0.9;   // Risk of trade
+            act.score = score + Math.random() * 5;
+          } else if (act.kind === 'move') {
+            const mover = board[act.from];
+            let score = 5;
+            const currentlyInDanger = threatenedSquares.has(act.from);
+            const destInDanger = threatenedSquares.has(act.to);
+            if (currentlyInDanger && !destInDanger) {
+              score += mover.value * 1.3; // Run away!
+            } else if (!currentlyInDanger && destInDanger) {
+              score -= mover.value * 1.4; // Don't walk into danger
+            }
+            act.score = score + Math.random() * 4;
+          } else if (act.kind === 'flip') {
+            // Slightly penalize flipping adjacent to strong enemy pieces
+            const [r, c] = toRC(act.idx);
+            let adjDanger = 0;
+            for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+              const adj = toIdx(r + dr, c + dc);
+              if (adj !== -1 && board[adj] && board[adj].flipped && board[adj].side === enemySide) {
+                adjDanger += 6;
+              }
+            }
+            act.score = 18 - adjDanger + Math.random() * 8;
+          }
+        }
+      }
+
+      candidateActions.sort((a, b) => b.score - a.score);
+      const best = candidateActions[0];
+
+      if (best.kind === 'flip') {
+        flipPiece(best.idx);
+      } else {
+        executeMove(best.from, best.to, best.kind);
+      }
+    }
+
+    function render() {
+      boardEl.innerHTML = '';
+
+      for (let i = 0; i < board.length; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+
+        if (lastMove && (lastMove.from === i || lastMove.to === i)) {
+          cell.classList.add('last-move');
+        }
+
+        const validAct = validActions.find(a => a.to === i);
+        if (validAct) {
+          cell.classList.add(validAct.type === 'capture' ? 'valid-capture' : 'valid-move');
+        }
+
+        const p = board[i];
+        if (p) {
+          const pieceEl = document.createElement('div');
+          pieceEl.className = 'piece ' + (p.flipped ? `revealed ${p.side}` : 'hidden');
+          if (selectedIdx === i) pieceEl.classList.add('selected');
+          if (p.flipped) pieceEl.textContent = p.name;
+          cell.appendChild(pieceEl);
+        }
+
+        cell.addEventListener('click', () => handleCellClick(i));
+        boardEl.appendChild(cell);
+      }
+
+      // Update status bar
+      if (!gameOver) {
+        if (currentTurn === null) {
+          turnIndicatorEl.textContent = '請翻開第一顆棋子';
+          turnIndicatorEl.className = 'turn-badge';
+          turnIndicatorEl.style = '';
+        } else {
+          const isAiMode = gameModeEl.value.startsWith('ai');
+          const roleText = isAiMode
+            ? (currentTurn === aiSide ? '電腦思考中...' : '輪到你')
+            : '輪到';
+          const sideText = currentTurn === 'red' ? '紅方' : '黑方';
+          turnIndicatorEl.textContent = `${roleText} (${sideText})`;
+          turnIndicatorEl.className = `turn-badge ${currentTurn === 'red' ? 'turn-red' : 'turn-black'}`;
+          turnIndicatorEl.style = '';
+        }
+      }
+
+      if (playerSide && gameModeEl.value.startsWith('ai')) {
+        sideInfoEl.textContent = `玩家：${playerSide === 'red' ? '紅方' : '黑方'} ｜ 電腦：${aiSide === 'red' ? '紅方' : '黑方'}`;
+      } else if (currentTurn) {
+        sideInfoEl.textContent = '雙人對戰模式';
+      } else {
+        sideInfoEl.textContent = '紅方：未定 ｜ 黑方：未定';
+      }
+
+      stepCounterEl.textContent = `無吃翻步數：${staleMoves} / 50`;
+      deadRedEl.textContent = deadRed.join(' ');
+      deadBlackEl.textContent = deadBlack.join(' ');
+    }
+
+    document.getElementById('newGameBtn').addEventListener('click', initGame);
+    gameModeEl.addEventListener('change', initGame);
+    ruleModeEl.addEventListener('change', () => {
+      updateRuleHint();
+      if (selectedIdx !== null) {
+        validActions = getLegalMovesForPiece(selectedIdx);
+      }
+      render();
+    });
+
+    initGame();
+  </script>
+</body>
+</html>

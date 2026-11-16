@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>台灣象棋暗棋 - 豪華動畫版</title>
+
+  <!-- 外部函式庫 CDN：GSAP 動畫、SweetAlert2 彈窗、Canvas Confetti 彩帶特效 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #1a1512;
+      --board-bg: #dca35d;
+      --board-border: #633614;
+      --cell-line: #47260c;
+      --piece-bg: #f8e8c8;
+      --piece-hidden: #8c2a16;
+      --red-color: #c91c1c;
+      --black-color: #181818;
+      --highlight-move: rgba(46, 204, 113, 0.8);
+      --highlight-capture: rgba(231, 76, 60, 0.85);
+    }
+
+    * { box-sizing: border-box; user-select: none; }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+      background: radial-gradient(circle at top, #2c231d 0%, var(--bg-color) 100%);
+      color: #f5efe6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: 1.65rem;
+      letter-spacing: 3px;
+      color: #f5cb7f;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    select, button {
+      padding: 8px 13px;
+      font-size: 0.95rem;
+      border-radius: 6px;
+      border: 1px solid #8c6239;
+      background-color: #362920;
+      color: #f5efe6;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    select:hover, button:hover {
+      background-color: #4d3b2f;
+      transform: translateY(-1px);
+    }
+
+    button.primary {
+      background-color: #b0411e;
+      border-color: #db6642;
+      font-weight: bold;
+    }
+
+    button.primary:hover {
+      background-color: #cc4e27;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 680px;
+      background: rgba(43, 34, 27, 0.9);
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid #594333;
+      margin-bottom: 12px;
+      font-size: 0.98rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .turn-badge {
+      padding: 4px 12px;
+      border-radius: 5px;
+      font-weight: bold;
+      background: #44362b;
+      transition: background 0.3s;
+    }
+
+    .turn-red { background: #a81b1b; color: #fff; box-shadow: 0 0 10px rgba(201, 28, 28, 0.5); }
+    .turn-black { background: #111; color: #f5cb7f; border: 1px solid #666; box-shadow: 0 0 10px rgba(0, 0, 0, 0.6); }
+
+    .board-wrapper {
+      background: linear-gradient(145deg, #754119, var(--board-border));
+      padding: 15px;
+      border-radius: 14px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+      position: relative;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 72px);
+      grid-template-rows: repeat(4, 72px);
+      background-color: var(--board-bg);
+      background-image: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.03) 0px,
+        rgba(0, 0, 0, 0.03) 2px,
+        transparent 2px,
+        transparent 6px
+      );
+      border: 2px solid var(--cell-line);
+      position: relative;
+    }
+
+    @media (max-width: 640px) {
+      .board {
+        grid-template-columns: repeat(8, 11vw);
+        grid-template-rows: repeat(4, 11vw);
+      }
+    }
+
+    .cell {
+      border: 1px solid var(--cell-line);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .cell.last-move {
+      background-color: rgba(255, 235, 59, 0.28);
+    }
+
+    .cell.valid-move::after {
+      content: "";
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background-color: var(--highlight-move);
+      box-shadow: 0 0 10px #2ecc71;
+      pointer-events: none;
+      animation: pulseDot 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(0.9); opacity: 0.75; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+
+    .cell.valid-capture {
+      background-color: rgba(231, 76, 60, 0.35);
+      box-shadow: inset 0 0 0 3px var(--highlight-capture);
+    }
+
+    .piece {
+      width: 82%;
+      height: 82%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.65rem;
+      font-weight: bold;
+      box-shadow: 0 5px 8px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.6);
+      will-change: transform;
+      position: relative;
+      z-index: 2;
+    }
+
+    @media (max-width: 640px) {
+      .piece { font-size: 1.15rem; }
+    }
+
+    .piece.hidden {
+      background: radial-gradient(circle at 35% 35%, #b83d25, var(--piece-hidden));
+      border: 2px solid #59180b;
+    }
+
+    .piece.hidden::after {
+      content: "❖";
+      color: rgba(245, 203, 127, 0.4);
+      font-size: 1.25rem;
+    }
+
+    .piece.revealed {
+      background: radial-gradient(circle at 35% 35%, #fff8eb, var(--piece-bg));
+      border: 2px solid #b58c53;
+    }
+
+    .piece.red {
+      color: var(--red-color);
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .piece.black {
+      color: var(--black-color);
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .piece.selected {
+      transform: scale(1.14) translateY(-4px);
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.65), 0 0 0 3px #f1c40f;
+      z-index: 10;
+    }
+
+    .captured-panel {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 680px;
+      margin-top: 12px;
+      gap: 12px;
+    }
+
+    .captured-box {
+      flex: 1;
+      background: rgba(43, 34, 27, 0.9);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #594333;
+      min-height: 48px;
+      font-size: 0.9rem;
+    }
+
+    .captured-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 4px;
+      font-weight: bold;
+    }
+
+    .rule-hint {
+      max-width: 680px;
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: #c9baaa;
+      line-height: 1.5;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px 14px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>台灣象棋暗棋</h1>
+
+  <div class="controls">
+    <select id="gameMode">
+      <option value="ai-normal" selected>單人 vs 電腦 (普通)</option>
+      <option value="ai-easy">單人 vs 電腦 (簡單)</option>
+      <option value="pvp">雙人同機對戰</option>
+    </select>
+
+    <select id="ruleMode">
+      <option value="standard" selected>標準規則 (全走一格)</option>
+      <option value="variant">變體規則 (象飛田・馬走日・車衝鋒)</option>
+    </select>
+
+    <button id="soundToggleBtn">音效：開</button>
+    <button class="primary" id="newGameBtn">重新開局</button>
+  </div>
+
+  <div class="status-bar">
+    <div id="turnIndicator" class="turn-badge">請翻開第一顆棋子</div>
+    <div id="sideInfo">紅方：未定 ｜ 黑方：未定</div>
+    <div id="stepCounter">無吃翻步數：0 / 50</div>
+  </div>
+
+  <div class="board-wrapper" id="boardWrapper">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="captured-panel">
+    <div class="captured-box">
+      <div style="color:#ff7675;">紅方陣亡：</div>
+      <div class="captured-list" id="deadRed"></div>
+    </div>
+    <div class="captured-box">
+      <div style="color:#dfe6e9;">黑方陣亡：</div>
+      <div class="captured-list" id="deadBlack"></div>
+    </div>
+  </div>
+
+  <div class="rule-hint" id="ruleHint">
+    <strong>目前規則：標準模式</strong> — 除炮/包可隔一子跳吃外，所有棋子皆走上下左右相鄰一格；兵/卒可吃將/帥。
+  </div>
+
+  <script>
+    const ROWS = 4;
+    const COLS = 8;
+
+    const PIECE_DEFS = [
+      { side: 'red', rank: 1, name: '帥', count: 1, value: 100 },
+      { side: 'red', rank: 2, name: '仕', count: 2, value: 55 },
+      { side: 'red', rank: 3, name: '相', count: 2, value: 40 },
+      { side: 'red', rank: 4, name: '俥', count: 2, value: 30 },
+      { side: 'red', rank: 5, name: '傌', count: 2, value: 20 },
+      { side: 'red', rank: 6, name: '炮', count: 2, value: 45 },
+      { side: 'red', rank: 7, name: '兵', count: 5, value: 15 },
+      { side: 'black', rank: 1, name: '將', count: 1, value: 100 },
+      { side: 'black', rank: 2, name: '士', count: 2, value: 55 },
+      { side: 'black', rank: 3, name: '象', count: 2, value: 40 },
+      { side: 'black', rank: 4, name: '車', count: 2, value: 30 },
+      { side: 'black', rank: 5, name: '馬', count: 2, value: 20 },
+      { side: 'black', rank: 6, name: '包', count: 2, value: 45 },
+      { side: 'black', rank: 7, name: '卒', count: 5, value: 15 }
+    ];
+
+    let board = [];
+    let currentTurn = null;
+    let playerSide = null;
+    let aiSide = null;
+    let selectedIdx = null;
+    let validActions = [];
+    let lastMove = null;
+    let deadRed = [];
+    let deadBlack = [];
+    let staleMoves = 0;
+    let gameOver = false;
+    let aiTimer = null;
+    let soundEnabled = true;
+
+    const boardEl = document.getElementById('board');
+    const boardWrapperEl = document.getElementById('boardWrapper');
+    const turnIndicatorEl = document.getElementById('turnIndicator');
+    const sideInfoEl = document.getElementById('sideInfo');
+    const stepCounterEl = document.getElementById('stepCounter');
+    const deadRedEl = document.getElementById('deadRed');
+    const deadBlackEl = document.getElementById('deadBlack');
+    const gameModeEl = document.getElementById('gameMode');
+    const ruleModeEl = document.getElementById('ruleMode');
+    const ruleHintEl = document.getElementById('ruleHint');
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+
+    // Web Audio API 合成木質落子與吃子音效
+    const audioCtx = typeof AudioContext !== 'undefined' ? new AudioContext() : null;
+    function playSound(type) {
+      if (!soundEnabled || !audioCtx) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        if (type === 'flip') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(520, now + 0.08);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.09);
+        } else if (type === 'move') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(240, now);
+          osc.frequency.exponentialRampToValueAtTime(140, now + 0.07);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'capture') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.exponentialRampToValueAtTime(75, now + 0.16);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.17);
+        } else if (type === 'select') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(580, now);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.04);
+        }
+      } catch (e) {}
+    }
+
+    function initGame() {
+      if (aiTimer) {
+        clearTimeout(aiTimer);
+        aiTimer = null;
+      }
+
+      const deck = [];
+      let idCounter = 1;
+      for (const def of PIECE_DEFS) {
+        for (let i = 0; i < def.count; i++) {
+          deck.push({
+            id: idCounter++,
+            side: def.side,
+            rank: def.rank,
+            name: def.name,
+            value: def.value,
+            flipped: false
+          });
+        }
+      }
+
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+
+      board = deck;
+      currentTurn = null;
+      playerSide = null;
+      aiSide = null;
+      selectedIdx = null;
+      validActions = [];
+      lastMove = null;
+      deadRed = [];
+      deadBlack = [];
+      staleMoves = 0;
+      gameOver = false;
+
+      updateRuleHint();
+      render();
+
+      // 開局洗牌進場動畫 (GSAP)
+      if (typeof gsap !== 'undefined') {
+        gsap.from('.piece', {
+          scale: 0.4,
+          opacity: 0,
+          duration: 0.35,
+          stagger: { amount: 0.25, from: 'center' },
+          ease: 'back.out(1.4)'
+        });
+      }
+    }
+
+    function updateRuleHint() {
+      const isVariant = ruleModeEl.value === 'variant';
+      if (isVariant) {
+        ruleHintEl.innerHTML = '<strong>目前規則：變體模式</strong> — 除基本一格走法外，<strong>相/象可走田字（4格對角跳躍）</strong>、<strong>傌/馬可走日字（8方向跳躍）</strong>、<strong>俥/車可沿直線無阻礙衝鋒吃子</strong>；炮/包維持隔一子跳吃。';
+      } else {
+        ruleHintEl.innerHTML = '<strong>目前規則：標準模式</strong> — 除炮/包可隔一子跳吃外，所有棋子皆走上下左右相鄰一格；兵/卒可吃將/帥。';
+      }
+    }
+
+    function toRC(idx) {
+      return [Math.floor(idx / COLS), idx % COLS];
+    }
+
+    function toIdx(r, c) {
+      if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return -1;
+      return r * COLS + c;
+    }
+
+    function canCapture(attacker, target) {
+      if (!attacker || !target || !attacker.flipped || !target.flipped) return false;
+      if (attacker.side === target.side) return false;
+      if (attacker.rank === 6) return true;
+      if (attacker.rank === 7) return target.rank === 1 || target.rank === 7;
+      if (attacker.rank === 1 && target.rank === 7) return false;
+      return attacker.rank <= target.rank;
+    }
+
+    function getLegalMovesForPiece(idx, stateBoard = board, isVariant = ruleModeEl.value === 'variant') {
+      const piece = stateBoard[idx];
+      if (!piece || !piece.flipped) return [];
+
+      const actions = [];
+      const addedTargets = new Set();
+      const [r, c] = toRC(idx);
+
+      const addAction = (to, type) => {
+        if (to === -1 || addedTargets.has(to)) return;
+        addedTargets.add(to);
+        actions.push({ to, type });
+      };
+
+      const orthoDirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+      // 1. 基本上下左右一格
+      for (const [dr, dc] of orthoDirs) {
+        const to = toIdx(r + dr, c + dc);
+        if (to === -1) continue;
+        const target = stateBoard[to];
+        if (!target) {
+          addAction(to, 'move');
+        } else if (piece.rank !== 6 && canCapture(piece, target)) {
+          addAction(to, 'capture');
+        }
+      }
+
+      // 2. 炮 / 包 隔山打牛
+      if (piece.rank === 6) {
+        for (const [dr, dc] of orthoDirs) {
+          let nr = r + dr;
+          let nc = c + dc;
+          let screenFound = false;
+          while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+            const curIdx = toIdx(nr, nc);
+            const cellPiece = stateBoard[curIdx];
+            if (!screenFound) {
+              if (cellPiece) screenFound = true;
+            } else {
+              if (cellPiece) {
+                if (canCapture(piece, cellPiece)) {
+                  addAction(curIdx, 'capture');
+                }
+                break;
+              }
+            }
+            nr += dr;
+            nc += dc;
+          }
+        }
+      }
+
+      // 3. 變體規則走法
+      if (isVariant) {
+        // 相 / 象：田字對角跳躍
+        if (piece.rank === 3) {
+          const eleDirs = [[-2, -2], [-2, 2], [2, -2], [2, 2]];
+          for (const [dr, dc] of eleDirs) {
+            const to = toIdx(r + dr, c + dc);
+            if (to === -1) continue;
+            const target = stateBoard[to];
+            if (!target) {
+              addAction(to, 'move');
+            } else if (canCapture(piece, target)) {
+              addAction(to, 'capture');
+            }
+          }
+        }
+
+        // 俥 / 車：直線無阻礙衝鋒
+        if (piece.rank === 4) {
+          for (const [dr, dc] of orthoDirs) {
+            let nr = r + dr;
+            let nc = c + dc;
+            while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+              const to = toIdx(nr, nc);
+              const target = stateBoard[to];
+              if (!target) {
+                addAction(to, 'move');
+              } else {
+                if (canCapture(piece, target)) {
+                  addAction(to, 'capture');
+                }
+                break;
+              }
+              nr += dr;
+              nc += dc;
+            }
+          }
+        }
+
+        // 傌 / 馬：日字 8 方向跳躍
+        if (piece.rank === 5) {
+          const knightDirs = [
+            [-2, -1], [-2, 1], [2, -1], [2, 1],
+            [-1, -2], [-1, 2], [1, -2], [1, 2]
+          ];
+          for (const [dr, dc] of knightDirs) {
+            const to = toIdx(r + dr, c + dc);
+            if (to === -1) continue;
+            const target = stateBoard[to];
+            if (!target) {
+              addAction(to, 'move');
+            } else if (canCapture(piece, target)) {
+              addAction(to, 'capture');
+            }
+          }
+        }
+      }
+
+      return actions;
+    }
+
+    function hasAnyLegalAction(side, stateBoard = board) {
+      for (let i = 0; i < stateBoard.length; i++) {
+        const p = stateBoard[i];
+        if (!p) continue;
+        if (!p.flipped) return true;
+        if (p.side === side && getLegalMovesForPiece(i, stateBoard).length > 0) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function handleCellClick(idx) {
+      if (gameOver) return;
+      const isAiMode = gameModeEl.value.startsWith('ai');
+      if (isAiMode && currentTurn && currentTurn === aiSide) return;
+
+      const clickedPiece = board[idx];
+
+      if (selectedIdx !== null) {
+        const action = validActions.find(a => a.to === idx);
+        if (action) {
+          executeMove(selectedIdx, action.to, action.type);
+          return;
+        }
+      }
+
+      if (clickedPiece && !clickedPiece.flipped) {
+        flipPiece(idx);
+        return;
+      }
+
+      if (clickedPiece && clickedPiece.flipped && clickedPiece.side === currentTurn) {
+        if (selectedIdx === idx) {
+          selectedIdx = null;
+          validActions = [];
+        } else {
+          selectedIdx = idx;
+          validActions = getLegalMovesForPiece(idx);
+          playSound('select');
+        }
+        render();
+        return;
+      }
+
+      selectedIdx = null;
+      validActions = [];
+      render();
+    }
+
+    function flipPiece(idx) {
+      const piece = board[idx];
+      if (!piece || piece.flipped) return;
+
+      piece.flipped = true;
+      selectedIdx = null;
+      validActions = [];
+      lastMove = { from: idx, to: idx };
+      staleMoves = 0;
+      playSound('flip');
+
+      if (currentTurn === null) {
+        currentTurn = piece.side;
+        if (gameModeEl.value.startsWith('ai')) {
+          playerSide = piece.side;
+          aiSide = piece.side === 'red' ? 'black' : 'red';
+        }
+      }
+
+      endTurn({ type: 'flip', to: idx });
+    }
+
+    function executeMove(from, to, type) {
+      const attacker = board[from];
+      const target = board[to];
+      const [fromR, fromC] = toRC(from);
+      const [toR, toC] = toRC(to);
+      const dx = (fromC - toC) * 72;
+      const dy = (fromR - toR) * 72;
+
+      let capturedKing = false;
+      if (type === 'capture' && target) {
+        if (target.rank === 1) capturedKing = true;
+        if (target.side === 'red') deadRed.push(target.name);
+        else deadBlack.push(target.name);
+        staleMoves = 0;
+        playSound('capture');
+      } else {
+        staleMoves++;
+        playSound('move');
+      }
+
+      board[to] = attacker;
+      board[from] = null;
+      selectedIdx = null;
+      validActions = [];
+      lastMove = { from, to };
+
+      endTurn({ type, to, dx, dy, capturedKing });
+    }
+
+    function endTurn(animInfo) {
+      const nextTurn = currentTurn === 'red' ? 'black' : 'red';
+      currentTurn = nextTurn;
+
+      const redAlive = board.some(p => p && p.side === 'red');
+      const blackAlive = board.some(p => p && p.side === 'black');
+
+      render(animInfo);
+
+      if (!redAlive) {
+        finishGame('黑方獲勝！', '紅方棋子已全數陣亡', 'black');
+        return;
+      }
+      if (!blackAlive) {
+        finishGame('紅方獲勝！', '黑方棋子已全數陣亡', 'red');
+        return;
+      }
+      if (staleMoves >= 50) {
+        finishGame('和局收場', '雙方連續 50 步無翻棋也無吃子', 'draw');
+        return;
+      }
+      if (!hasAnyLegalAction(currentTurn)) {
+        const winnerSide = currentTurn === 'red' ? 'black' : 'red';
+        const winnerName = winnerSide === 'red' ? '紅方' : '黑方';
+        finishGame(`${winnerName}獲勝！`, '對手已無任何合法步數可走（困斃）', winnerSide);
+        return;
+      }
+
+      if (!gameOver && gameModeEl.value.startsWith('ai') && currentTurn === aiSide) {
+        aiTimer = setTimeout(runAiTurn, 460);
+      }
+    }
+
+    function finishGame(title, subtitle, winnerSide) {
+      gameOver = true;
+      turnIndicatorEl.textContent = title;
+      turnIndicatorEl.className = 'turn-badge';
+      turnIndicatorEl.style.background = '#27ae60';
+      turnIndicatorEl.style.color = '#fff';
+
+      // 判斷玩家是否獲勝以觸發彩帶特效 (Canvas Confetti)
+      const isAiMode = gameModeEl.value.startsWith('ai');
+      const shouldCelebrate = winnerSide !== 'draw' && (!isAiMode || winnerSide === playerSide);
+
+      if (shouldCelebrate && typeof confetti === 'function') {
+        confetti({
+          particleCount: 110,
+          spread: 75,
+          origin: { y: 0.6 }
+        });
+      }
+
+      // 彈出精緻結算視窗 (SweetAlert2)
+      if (typeof Swal !== 'undefined') {
+        setTimeout(() => {
+          Swal.fire({
+            title: title,
+            text: subtitle,
+            icon: winnerSide === 'draw' ? 'info' : 'success',
+            background: '#2b221b',
+            color: '#f5efe6',
+            confirmButtonText: '再來一局',
+            confirmButtonColor: '#b0411e',
+            showCancelButton: true,
+            cancelButtonText: '檢視棋盤',
+            cancelButtonColor: '#594333'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              initGame();
+            }
+          });
+        }, 300);
+      }
+    }
+
+    function runAiTurn() {
+      aiTimer = null;
+      if (gameOver || currentTurn !== aiSide) return;
+
+      const difficulty = gameModeEl.value;
+      const candidateActions = [];
+
+      for (let i = 0; i < board.length; i++) {
+        const p = board[i];
+        if (!p) continue;
+        if (!p.flipped) {
+          candidateActions.push({ kind: 'flip', idx: i, score: 12 + Math.random() * 6 });
+        } else if (p.side === aiSide) {
+          const moves = getLegalMovesForPiece(i);
+          for (const m of moves) {
+            candidateActions.push({
+              kind: m.type,
+              from: i,
+              to: m.to,
+              score: 0
+            });
+          }
+        }
+      }
+
+      if (candidateActions.length === 0) return;
+
+      if (difficulty === 'ai-easy') {
+        for (const act of candidateActions) {
+          if (act.kind === 'capture') act.score = 40 + Math.random() * 20;
+          else if (act.kind === 'flip') act.score = 20 + Math.random() * 20;
+          else act.score = Math.random() * 20;
+        }
+      } else {
+        const enemySide = aiSide === 'red' ? 'black' : 'red';
+        const threatenedSquares = new Set();
+        for (let i = 0; i < board.length; i++) {
+          const ep = board[i];
+          if (ep && ep.flipped && ep.side === enemySide) {
+            const eMoves = getLegalMovesForPiece(i);
+            for (const em of eMoves) {
+              threatenedSquares.add(em.to);
+            }
+          }
+        }
+
+        for (const act of candidateActions) {
+          if (act.kind === 'capture') {
+            const attacker = board[act.from];
+            const target = board[act.to];
+            let score = (target ? target.value * 2.2 : 30);
+            if (threatenedSquares.has(act.from)) score += attacker.value * 0.8;
+            if (threatenedSquares.has(act.to)) score -= attacker.value * 0.9;
+            act.score = score + Math.random() * 5;
+          } else if (act.kind === 'move') {
+            const mover = board[act.from];
+            let score = 5;
+            const currentlyInDanger = threatenedSquares.has(act.from);
+            const destInDanger = threatenedSquares.has(act.to);
+            if (currentlyInDanger && !destInDanger) {
+              score += mover.value * 1.3;
+            } else if (!currentlyInDanger && destInDanger) {
+              score -= mover.value * 1.4;
+            }
+            act.score = score + Math.random() * 4;
+          } else if (act.kind === 'flip') {
+            const [r, c] = toRC(act.idx);
+            let adjDanger = 0;
+            for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+              const adj = toIdx(r + dr, c + dc);
+              if (adj !== -1 && board[adj] && board[adj].flipped && board[adj].side === enemySide) {
+                adjDanger += 6;
+              }
+            }
+            act.score = 18 - adjDanger + Math.random() * 8;
+          }
+        }
+      }
+
+      candidateActions.sort((a, b) => b.score - a.score);
+      const best = candidateActions[0];
+
+      if (best.kind === 'flip') {
+        flipPiece(best.idx);
+      } else {
+        executeMove(best.from, best.to, best.kind);
+      }
+    }
+
+    function render(animInfo = null) {
+      boardEl.innerHTML = '';
+
+      for (let i = 0; i < board.length; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+
+        if (lastMove && (lastMove.from === i || lastMove.to === i)) {
+          cell.classList.add('last-move');
+        }
+
+        const validAct = validActions.find(a => a.to === i);
+        if (validAct) {
+          cell.classList.add(validAct.type === 'capture' ? 'valid-capture' : 'valid-move');
+        }
+
+        const p = board[i];
+        if (p) {
+          const pieceEl = document.createElement('div');
+          pieceEl.className = 'piece ' + (p.flipped ? `revealed ${p.side}` : 'hidden');
+          if (selectedIdx === i) pieceEl.classList.add('selected');
+          if (p.flipped) pieceEl.textContent = p.name;
+          cell.appendChild(pieceEl);
+
+          // GSAP 動作與特效動畫
+          if (animInfo && animInfo.to === i && typeof gsap !== 'undefined') {
+            if (animInfo.type === 'flip') {
+              gsap.fromTo(pieceEl,
+                { scaleX: 0, scale: 1.2 },
+                { scaleX: 1, scale: 1, duration: 0.28, ease: 'back.out(1.7)' }
+              );
+            } else if (animInfo.type === 'move' || animInfo.type === 'capture') {
+              gsap.fromTo(pieceEl,
+                { x: animInfo.dx, y: animInfo.dy, scale: animInfo.type === 'capture' ? 1.22 : 1.05 },
+                { x: 0, y: 0, scale: 1, duration: 0.24, ease: 'power2.out' }
+              );
+              // 吃掉大子（如帥/將）時棋盤震動
+              if (animInfo.capturedKing) {
+                gsap.fromTo(boardWrapperEl,
+                  { x: -6 },
+                  { x: 6, duration: 0.05, repeat: 5, yoyo: true, clearProps: 'x' }
+                );
+              }
+            }
+          }
+        }
+
+        cell.addEventListener('click', () => handleCellClick(i));
+        boardEl.appendChild(cell);
+      }
+
+      if (!gameOver) {
+        if (currentTurn === null) {
+          turnIndicatorEl.textContent = '請翻開第一顆棋子';
+          turnIndicatorEl.className = 'turn-badge';
+          turnIndicatorEl.style = '';
+        } else {
+          const isAiMode = gameModeEl.value.startsWith('ai');
+          const roleText = isAiMode
+            ? (currentTurn === aiSide ? '電腦思考中...' : '輪到你')
+            : '輪到';
+          const sideText = currentTurn === 'red' ? '紅方' : '黑方';
+          turnIndicatorEl.textContent = `${roleText} (${sideText})`;
+          turnIndicatorEl.className = `turn-badge ${currentTurn === 'red' ? 'turn-red' : 'turn-black'}`;
+          turnIndicatorEl.style = '';
+        }
+      }
+
+      if (playerSide && gameModeEl.value.startsWith('ai')) {
+        sideInfoEl.textContent = `玩家：${playerSide === 'red' ? '紅方' : '黑方'} ｜ 電腦：${aiSide === 'red' ? '紅方' : '黑方'}`;
+      } else if (currentTurn) {
+        sideInfoEl.textContent = '雙人對戰模式';
+      } else {
+        sideInfoEl.textContent = '紅方：未定 ｜ 黑方：未定';
+      }
+
+      stepCounterEl.textContent = `無吃翻步數：${staleMoves} / 50`;
+      deadRedEl.textContent = deadRed.join(' ');
+      deadBlackEl.textContent = deadBlack.join(' ');
+    }
+
+    soundToggleBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundToggleBtn.textContent = soundEnabled ? '音效：開' : '音效：關';
+    });
+
+    document.getElementById('newGameBtn').addEventListener('click', initGame);
+    gameModeEl.addEventListener('change', initGame);
+    ruleModeEl.addEventListener('change', () => {
+      updateRuleHint();
+      if (selectedIdx !== null) {
+        validActions = getLegalMovesForPiece(selectedIdx);
+      }
+      render();
+    });
+
+    initGame();
+  </script>
+</body>
+</html>
