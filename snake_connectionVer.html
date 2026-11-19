@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>純前端 P2P 雙人對戰貪食蛇</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 { margin: 0 0 10px 0; font-size: 24px; }
+    .panel {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 15px;
+      width: 420px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+    .btn-group { display: flex; gap: 10px; margin-bottom: 10px; }
+    button {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: #2e7d32;
+      color: white;
+    }
+    button:hover { background: #388e3c; }
+    button.secondary { background: #1565c0; }
+    button.secondary:hover { background: #1976d2; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    
+    .info-box {
+      background: #000;
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 13px;
+      margin-top: 8px;
+      border: 1px solid #444;
+    }
+    .highlight { color: #ffeb3b; font-weight: bold; font-size: 16px; }
+    textarea {
+      width: 100%;
+      height: 55px;
+      background: #000;
+      color: #0f0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      font-size: 11px;
+      margin-top: 5px;
+      box-sizing: border-box;
+      resize: none;
+    }
+    input[type="text"] {
+      width: 80px;
+      padding: 6px;
+      background: #000;
+      color: #ffeb3b;
+      border: 1px solid #444;
+      border-radius: 4px;
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: 3px;
+    }
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      width: 420px;
+      font-size: 16px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    .p1-color { color: #4caf50; }
+    .p2-color { color: #2196f3; }
+    canvas {
+      border: 3px solid #fff;
+      background-color: #000;
+    }
+    .hidden { display: none; }
+    .hint { font-size: 12px; color: #aaa; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <h1>雙人搶球貪食蛇 (純前端 P2P)</h1>
+
+  <!-- 連線控制面板 -->
+  <div class="panel" id="lobbyPanel">
+    <div class="btn-group">
+      <button id="btnCreateServer" onclick="initServer()">設定為 Server (建立房間)</button>
+      <button id="btnShowJoin" class="secondary" onclick="showJoinUI()">加入其他人的房間</button>
+    </div>
+
+    <!-- Server 介面 -->
+    <div id="serverUI" class="hidden">
+      <div class="info-box">
+        <div>本機節點狀態：<span id="serverIpDisplay">WebRTC P2P 就緒 (Local/STUN)</span></div>
+        <div style="margin-top:5px;">3 碼確認碼：<span id="pinDisplay" class="highlight">---</span></div>
+      </div>
+      <div class="hint">1. 複製下方「房間邀請碼」與「3碼確認碼」傳給對手：</div>
+      <textarea id="offerOutput" readonly placeholder="正在產生連線代碼..."></textarea>
+      <button style="margin-top:5px; width:100%;" onclick="copyText('offerOutput')">複製邀請碼</button>
+
+      <div class="hint" style="margin-top:10px;">2. 貼上對手回傳的「加入確認碼」並開始：</div>
+      <textarea id="answerInput" placeholder="在此貼上對手的回覆代碼..."></textarea>
+      <button style="margin-top:5px; width:100%; background:#e65100;" onclick="acceptClientAnswer()">確認連線並開始對戰</button>
+    </div>
+
+    <!-- Client 加入介面 -->
+    <div id="clientUI" class="hidden">
+      <div class="hint">1. 貼上房主的「房間邀請碼」：</div>
+      <textarea id="offerInput" placeholder="貼上房主給你的邀請碼..."></textarea>
+      <div style="margin-top:8px; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:13px;">2. 輸入房主的 3 碼確認碼：</span>
+        <input type="text" id="pinInput" maxlength="3" placeholder="000">
+        <button class="secondary" onclick="joinServer()">產生回覆碼</button>
+      </div>
+      <div id="clientAnswerBox" class="hidden">
+        <div class="hint" style="margin-top:8px;">3. 複製下方回覆碼傳回給房主，等待房主啟動：</div>
+        <textarea id="answerOutput" readonly></textarea>
+        <button style="margin-top:5px; width:100%;" onclick="copyText('answerOutput')">複製回覆碼</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 記分板 -->
+  <div class="scoreboard">
+    <div class="p1-color">Server 綠蛇長度: <span id="p1Len">1</span></div>
+    <div id="statusText" style="color:#ffeb3b;">等待連線...</div>
+    <div class="p2-color">Client 藍蛇長度: <span id="p2Len">1</span></div>
+  </div>
+
+  <canvas id="gameCanvas" width="420" height="420"></canvas>
+  <div class="hint">操作方式：方向鍵 (↑↓←→) 或 WASD 控制移動</div>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const gridSize = 20;
+  const tileCount = canvas.width / gridSize; // 21x21 格
+
+  // WebRTC 相關變數
+  let pc = null;
+  let dataChannel = null;
+  let isServer = false;
+  let roomPin = "";
+  const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+  // 遊戲狀態變數
+  let gameRunning = false;
+  let gameTimeout = null;
+  let food = { x: 10, y: 10 };
+
+  let p1 = { snake: [{ x: 3, y: 10 }], dx: 1, dy: 0, nextDx: 1, nextDy: 0 };
+  let p2 = { snake: [{ x: 17, y: 10 }], dx: -1, dy: 0, nextDx: -1, nextDy: 0 };
+
+  // ================= WebRTC 連線邏輯 =================
+
+  function initServer() {
+    isServer = true;
+    document.getElementById("serverUI").classList.remove("hidden");
+    document.getElementById("clientUI").classList.add("hidden");
+    document.getElementById("btnCreateServer").disabled = true;
+
+    // 產生隨機 3 碼確認碼
+    roomPin = Math.floor(100 + Math.random() * 900).toString();
+    document.getElementById("pinDisplay").textContent = roomPin;
+
+    pc = new RTCPeerConnection(rtcConfig);
+    dataChannel = pc.createDataChannel("snakeGame");
+    setupDataChannel();
+
+    // 擷取本機區域網路候選 IP 顯示（若瀏覽器允許）
+    pc.onicecandidate = (event) => {
+      if (event.candidate && event.candidate.address) {
+        document.getElementById("serverIpDisplay").textContent = event.candidate.address;
+      }
+      if (!event.candidate) {
+        // ICE 收集完成，將 Offer 與 Pin 打包成邀請碼
+        const payload = JSON.stringify({ pin: roomPin, sdp: pc.localDescription });
+        document.getElementById("offerOutput").value = btoa(payload);
+      }
+    };
+
+    pc.createOffer().then(offer => pc.setLocalDescription(offer));
+  }
+
+  function showJoinUI() {
+    isServer = false;
+    document.getElementById("clientUI").classList.remove("hidden");
+    document.getElementById("serverUI").classList.add("hidden");
+  }
+
+  function joinServer() {
+    const rawOffer = document.getElementById("offerInput").value.trim();
+    const inputPin = document.getElementById("pinInput").value.trim();
+    if (!rawOffer || inputPin.length !== 3) {
+      alert("請完整貼上邀請碼並輸入 3 碼確認碼！");
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(atob(rawOffer));
+    } catch (e) {
+      alert("邀請碼格式錯誤！");
+      return;
+    }
+
+    if (parsed.pin !== inputPin) {
+      alert("3 碼確認碼錯誤！請向房主確認。");
+      return;
+    }
+
+    pc = new RTCPeerConnection(rtcConfig);
+    pc.ondatachannel = (event) => {
+      dataChannel = event.channel;
+      setupDataChannel();
+    };
+
+    pc.onicecandidate = (event) => {
+      if (!event.candidate) {
+        document.getElementById("answerOutput").value = btoa(JSON.stringify(pc.localDescription));
+        document.getElementById("clientAnswerBox").classList.remove("hidden");
+      }
+    };
+
+    pc.setRemoteDescription(new RTCSessionDescription(parsed.sdp))
+      .then(() => pc.createAnswer())
+      .then(answer => pc.setLocalDescription(answer));
+  }
+
+  function acceptClientAnswer() {
+    const rawAnswer = document.getElementById("answerInput").value.trim();
+    if (!rawAnswer) return alert("請貼上對手的回覆代碼！");
+    try {
+      const answerSdp = JSON.parse(atob(rawAnswer));
+      pc.setRemoteDescription(new RTCSessionDescription(answerSdp));
+    } catch (e) {
+      alert("回覆代碼格式錯誤！");
+    }
+  }
+
+  function setupDataChannel() {
+    dataChannel.onopen = () => {
+      document.getElementById("lobbyPanel").classList.add("hidden");
+      document.getElementById("statusText").textContent = "對戰中！";
+      if (isServer) {
+        startServerGame();
+      }
+    };
+
+    dataChannel.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (isServer) {
+        // Server 接收 Client 的方向輸入
+        if (msg.type === "DIR") {
+          applyDirection(p2, msg.dx, msg.dy);
+        }
+      } else {
+        // Client 接收 Server 同步的畫面狀態
+        if (msg.type === "STATE") {
+          p1.snake = msg.p1;
+          p2.snake = msg.p2;
+          food = msg.food;
+          updateScoreboard();
+          draw();
+        } else if (msg.type === "GAMEOVER") {
+          alert(msg.result);
+          location.reload();
+        }
+      }
+    };
+  }
+
+  function copyText(elementId) {
+    const el = document.getElementById(elementId);
+    el.select();
+    document.execCommand("copy");
+    alert("已複製到剪貼簿！");
+  }
+
+  // ================= 遊戲核心邏輯 (由 Server 權威運算) =================
+
+  function startServerGame() {
+    p1 = { snake: [{ x: 3, y: 10 }], dx: 1, dy: 0, nextDx: 1, nextDy: 0 };
+    p2 = { snake: [{ x: 17, y: 10 }], dx: -1, dy: 0, nextDx: -1, nextDy: 0 };
+    spawnFood();
+    gameRunning = true;
+    serverLoop();
+  }
+
+  function serverLoop() {
+    if (!gameRunning) return;
+
+    updateGame();
+    if (!gameRunning) return; // 若在 updateGame 中分出勝負則停止
+
+    updateScoreboard();
+    draw();
+
+    // 同步狀態給 Client
+    if (dataChannel && dataChannel.readyState === "open") {
+      dataChannel.send(JSON.stringify({
+        type: "STATE",
+        p1: p1.snake,
+        p2: p2.snake,
+        food: food
+      }));
+    }
+
+    // 依場上最長的蛇動態加速 (初始 180ms，每多 1 格快 5ms，最快 60ms)
+    const maxLen = Math.max(p1.snake.length, p2.snake.length);
+    const delay = Math.max(60, 180 - (maxLen - 1) * 5);
+    gameTimeout = setTimeout(serverLoop, delay);
+  }
+
+  function updateGame() {
+    // 套用本幀最終方向
+    p1.dx = p1.nextDx; p1.dy = p1.nextDy;
+    p2.dx = p2.nextDx; p2.dy = p2.nextDy;
+
+    const head1 = { x: p1.snake[0].x + p1.dx, y: p1.snake[0].y + p1.dy };
+    const head2 = { x: p2.snake[0].x + p2.dx, y: p2.snake[0].y + p2.dy };
+
+    // 1. 檢查兩蛇頭是否正面相撞 (同格 或 交錯對穿)
+    const headToHeadSameTile = (head1.x === head2.x && head1.y === head2.y);
+    const headToHeadSwap = (head1.x === p2.snake[0].x && head1.y === p2.snake[0].y &&
+                            head2.x === p1.snake[0].x && head2.y === p1.snake[0].y);
+
+    if (headToHeadSameTile || headToHeadSwap) {
+      if (p1.snake.length > p2.snake.length) {
+        return endGame("綠蛇 (Server) 獲勝！兩頭相撞，綠蛇體型較大！");
+      } else if (p2.snake.length > p1.snake.length) {
+        return endGame("藍蛇 (Client) 獲勝！兩頭相撞，藍蛇體型較大！");
+      } else {
+        return endGame("平手！兩頭相撞且雙方長度相同！");
+      }
+    }
+
+    // 2. 檢查各自的致命碰撞 (撞牆、撞自己身體、撞對方身體)
+    const p1Dead = isFatalCollision(head1, p1.snake, p2.snake);
+    const p2Dead = isFatalCollision(head2, p2.snake, p1.snake);
+
+    if (p1Dead && p2Dead) {
+      return endGame("平手！雙方同時發生碰撞！");
+    } else if (p1Dead) {
+      return endGame("藍蛇 (Client) 獲勝！綠蛇發生碰撞！");
+    } else if (p2Dead) {
+      return endGame("綠蛇 (Server) 獲勝！藍蛇發生碰撞！");
+    }
+
+    // 3. 移動與搶球判斷
+    p1.snake.unshift(head1);
+    p2.snake.unshift(head2);
+
+    let foodEaten = false;
+    if (head1.x === food.x && head1.y === food.y) {
+      foodEaten = true; // 綠蛇吃到，不 pop 尾巴 (變長)
+    } else {
+      p1.snake.pop();
+    }
+
+    if (head2.x === food.x && head2.y === food.y) {
+      foodEaten = true; // 藍蛇吃到，不 pop 尾巴 (變長)
+    } else {
+      p2.snake.pop();
+    }
+
+    if (foodEaten) {
+      spawnFood();
+    }
+  }
+
+  function isFatalCollision(head, ownSnake, enemySnake) {
+    // 撞牆
+    if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+      return true;
+    }
+    // 撞自己身體 (不含最後一節尾巴，因為它即將移走)
+    for (let i = 0; i < ownSnake.length - 1; i++) {
+      if (head.x === ownSnake[i].x && head.y === ownSnake[i].y) return true;
+    }
+    // 撞對方身體
+    for (let i = 0; i < enemySnake.length; i++) {
+      if (head.x === enemySnake[i].x && head.y === enemySnake[i].y) return true;
+    }
+    return false;
+  }
+
+  function spawnFood() {
+    while (true) {
+      const newFood = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount)
+      };
+      const onP1 = p1.snake.some(s => s.x === newFood.x && s.y === newFood.y);
+      const onP2 = p2.snake.some(s => s.x === newFood.x && s.y === newFood.y);
+      if (!onP1 && !onP2) {
+        food = newFood;
+        break;
+      }
+    }
+  }
+
+  function endGame(resultMsg) {
+    gameRunning = false;
+    clearTimeout(gameTimeout);
+    draw();
+    if (dataChannel && dataChannel.readyState === "open") {
+      dataChannel.send(JSON.stringify({ type: "GAMEOVER", result: resultMsg }));
+    }
+    setTimeout(() => {
+      alert(resultMsg);
+      location.reload();
+    }, 100);
+  }
+
+  // ================= 畫面繪製與鍵盤操控 =================
+
+  function updateScoreboard() {
+    document.getElementById("p1Len").textContent = p1.snake.length;
+    document.getElementById("p2Len").textContent = p2.snake.length;
+  }
+
+  function draw() {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 畫紅球
+    ctx.fillStyle = "#ff4d4d";
+    ctx.beginPath();
+    ctx.arc(
+      food.x * gridSize + gridSize / 2,
+      food.y * gridSize + gridSize / 2,
+      gridSize / 2 - 2,
+      0, Math.PI * 2
+    );
+    ctx.fill();
+
+    // 畫 P1 (綠蛇)
+    p1.snake.forEach((seg, idx) => {
+      ctx.fillStyle = idx === 0 ? "#a5d6a7" : "#4caf50";
+      ctx.fillRect(seg.x * gridSize + 1, seg.y * gridSize + 1, gridSize - 2, gridSize - 2);
+    });
+
+    // 畫 P2 (藍蛇)
+    p2.snake.forEach((seg, idx) => {
+      ctx.fillStyle = idx === 0 ? "#90caf9" : "#2196f3";
+      ctx.fillRect(seg.x * gridSize + 1, seg.y * gridSize + 1, gridSize - 2, gridSize - 2);
+    });
+  }
+
+  function applyDirection(player, newDx, newDy) {
+    // 防止直接 180 度反向自殺
+    if (player.dx + newDx === 0 && player.dy + newDy === 0) return;
+    player.nextDx = newDx;
+    player.nextDy = newDy;
+  }
+
+  document.addEventListener("keydown", (e) => {
+    let newDx = 0, newDy = 0;
+    if (e.key === "ArrowLeft" || e.key === "a") { newDx = -1; newDy = 0; }
+    else if (e.key === "ArrowUp" || e.key === "w") { newDx = 0; newDy = -1; }
+    else if (e.key === "ArrowRight" || e.key === "d") { newDx = 1; newDy = 0; }
+    else if (e.key === "ArrowDown" || e.key === "s") { newDx = 0; newDy = 1; }
+    else return;
+
+    if (isServer) {
+      applyDirection(p1, newDx, newDy);
+    } else if (dataChannel && dataChannel.readyState === "open") {
+      // Client 將按鍵指令傳給 Server 處理
+      dataChannel.send(JSON.stringify({ type: "DIR", dx: newDx, dy: newDy }));
+    }
+  });
+
+  // 初始畫面渲染
+  draw();
+</script>
+</body>
+</html>

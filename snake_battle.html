@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>純前端單機雙人貪食蛇</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      user-select: none;
+    }
+    h1 { margin: 0 0 12px 0; font-size: 24px; }
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 440px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: bold;
+      background: #1e1e1e;
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      box-sizing: border-box;
+    }
+    .p1-color { color: #4caf50; }
+    .p2-color { color: #2196f3; }
+    canvas {
+      border: 3px solid #fff;
+      background-color: #000;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+    }
+    .controls-hint {
+      display: flex;
+      justify-content: space-between;
+      width: 440px;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #bbb;
+    }
+    button {
+      margin-top: 15px;
+      padding: 8px 20px;
+      font-size: 15px;
+      font-weight: bold;
+      background: #e65100;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background: #f57c00; }
+  </style>
+</head>
+<body>
+
+  <h1>單機雙人搶球貪食蛇</h1>
+
+  <div class="scoreboard">
+    <div class="p1-color">P1 綠蛇 (WASD): <span id="p1Len">1</span></div>
+    <div id="statusText" style="color: #ffeb3b;">按任意方向鍵開始</div>
+    <div class="p2-color">P2 藍蛇 (方向鍵): <span id="p2Len">1</span></div>
+  </div>
+
+  <canvas id="gameCanvas" width="440" height="440"></canvas>
+
+  <div class="controls-hint">
+    <span>🟢 玩家 1：W 上 / S 下 / A 左 / D 右</span>
+    <span>🔵 玩家 2：↑ 上 / ↓ 下 / ← 左 / → 右</span>
+  </div>
+
+  <button onclick="resetGame()">重新開始</button>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const p1LenEl = document.getElementById("p1Len");
+  const p2LenEl = document.getElementById("p2Len");
+  const statusEl = document.getElementById("statusText");
+
+  const gridSize = 20;
+  const tileCount = canvas.width / gridSize; // 22x22 格
+
+  let p1, p2, food;
+  let gameStarted = false;
+  let gameOverFlag = false;
+  let gameTimeout = null;
+
+  function initGame() {
+    clearTimeout(gameTimeout);
+    // P1 綠蛇從左側出發向右，P2 藍蛇從右側出發向左
+    p1 = { snake: [{ x: 4, y: 11 }], dx: 1, dy: 0, nextDx: 1, nextDy: 0 };
+    p2 = { snake: [{ x: 17, y: 11 }], dx: -1, dy: 0, nextDx: -1, nextDy: 0 };
+    gameStarted = false;
+    gameOverFlag = false;
+    statusEl.textContent = "按移動鍵開始對戰";
+    spawnFood();
+    updateScoreboard();
+    draw();
+  }
+
+  function resetGame() {
+    initGame();
+  }
+
+  function startGame() {
+    if (gameStarted || gameOverFlag) return;
+    gameStarted = true;
+    statusEl.textContent = "對戰中！";
+    gameLoop();
+  }
+
+  function gameLoop() {
+    if (!gameStarted || gameOverFlag) return;
+
+    update();
+    if (gameOverFlag) return;
+
+    updateScoreboard();
+    draw();
+
+    // 依場上較長的那條蛇動態加速 (初始 180ms，每長 1 格快 5ms，最快 55ms)
+    const maxLen = Math.max(p1.snake.length, p2.snake.length);
+    const delay = Math.max(55, 180 - (maxLen - 1) * 5);
+    gameTimeout = setTimeout(gameLoop, delay);
+  }
+
+  function update() {
+    // 套用本幀最終方向
+    p1.dx = p1.nextDx; p1.dy = p1.nextDy;
+    p2.dx = p2.nextDx; p2.dy = p2.nextDy;
+
+    const head1 = { x: p1.snake[0].x + p1.dx, y: p1.snake[0].y + p1.dy };
+    const head2 = { x: p2.snake[0].x + p2.dx, y: p2.snake[0].y + p2.dy };
+
+    // 1. 檢查兩蛇頭正面相撞（移入同一格，或相鄰對衝交換位置）
+    const sameTile = (head1.x === head2.x && head1.y === head2.y);
+    const swapTile = (head1.x === p2.snake[0].x && head1.y === p2.snake[0].y &&
+                      head2.x === p1.snake[0].x && head2.y === p1.snake[0].y);
+
+    if (sameTile || swapTile) {
+      if (p1.snake.length > p2.snake.length) {
+        return endGame("🟢 P1 綠蛇獲勝！兩頭相撞，綠蛇體型較大！");
+      } else if (p2.snake.length > p1.snake.length) {
+        return endGame("🔵 P2 藍蛇獲勝！兩頭相撞，藍蛇體型較大！");
+      } else {
+        return endGame("🤝 平手！兩頭相撞且雙方長度相同！");
+      }
+    }
+
+    // 2. 檢查各自的致命碰撞（撞牆、撞自己身體、撞對手身體）
+    const p1Dead = isFatalCollision(head1, p1.snake, p2.snake);
+    const p2Dead = isFatalCollision(head2, p2.snake, p1.snake);
+
+    if (p1Dead && p2Dead) {
+      return endGame("🤝 平手！雙方同時發生碰撞！");
+    } else if (p1Dead) {
+      return endGame("🔵 P2 藍蛇獲勝！P1 綠蛇發生碰撞！");
+    } else if (p2Dead) {
+      return endGame("🟢 P1 綠蛇獲勝！P2 藍蛇發生碰撞！");
+    }
+
+    // 3. 移動與搶球判定
+    p1.snake.unshift(head1);
+    p2.snake.unshift(head2);
+
+    let foodEaten = false;
+    if (head1.x === food.x && head1.y === food.y) {
+      foodEaten = true; // P1 吃到，保留尾巴變長
+    } else {
+      p1.snake.pop();
+    }
+
+    if (head2.x === food.x && head2.y === food.y) {
+      foodEaten = true; // P2 吃到，保留尾巴變長
+    } else {
+      p2.snake.pop();
+    }
+
+    if (foodEaten) {
+      spawnFood();
+    }
+  }
+
+  function isFatalCollision(head, ownSnake, enemySnake) {
+    // 撞牆
+    if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+      return true;
+    }
+    // 撞自己身體（排除最後一節即將移走的尾巴）
+    for (let i = 0; i < ownSnake.length - 1; i++) {
+      if (head.x === ownSnake[i].x && head.y === ownSnake[i].y) return true;
+    }
+    // 撞對方身體
+    for (let i = 0; i < enemySnake.length; i++) {
+      if (head.x === enemySnake[i].x && head.y === enemySnake[i].y) return true;
+    }
+    return false;
+  }
+
+  function spawnFood() {
+    while (true) {
+      const newFood = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount)
+      };
+      const onP1 = p1.snake.some(s => s.x === newFood.x && s.y === newFood.y);
+      const onP2 = p2.snake.some(s => s.x === newFood.x && s.y === newFood.y);
+      if (!onP1 && !onP2) {
+        food = newFood;
+        break;
+      }
+    }
+  }
+
+  function endGame(msg) {
+    gameOverFlag = true;
+    gameStarted = false;
+    clearTimeout(gameTimeout);
+    draw();
+    statusEl.textContent = "遊戲結束";
+    setTimeout(() => {
+      alert(msg);
+    }, 50);
+  }
+
+  function updateScoreboard() {
+    p1LenEl.textContent = p1.snake.length;
+    p2LenEl.textContent = p2.snake.length;
+  }
+
+  function draw() {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 畫微弱格線方便判斷位置
+    ctx.strokeStyle = "#1a1a1a";
+    for (let i = 0; i < tileCount; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * gridSize, 0);
+      ctx.lineTo(i * gridSize, canvas.height);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, i * gridSize);
+      ctx.lineTo(canvas.width, i * gridSize);
+      ctx.stroke();
+    }
+
+    // 畫紅球
+    ctx.fillStyle = "#ff4d4d";
+    ctx.beginPath();
+    ctx.arc(
+      food.x * gridSize + gridSize / 2,
+      food.y * gridSize + gridSize / 2,
+      gridSize / 2 - 2,
+      0, Math.PI * 2
+    );
+    ctx.fill();
+
+    // 畫 P1 (綠蛇)
+    p1.snake.forEach((seg, idx) => {
+      ctx.fillStyle = idx === 0 ? "#a5d6a7" : "#4caf50";
+      ctx.fillRect(seg.x * gridSize + 1, seg.y * gridSize + 1, gridSize - 2, gridSize - 2);
+    });
+
+    // 畫 P2 (藍蛇)
+    p2.snake.forEach((seg, idx) => {
+      ctx.fillStyle = idx === 0 ? "#90caf9" : "#2196f3";
+      ctx.fillRect(seg.x * gridSize + 1, seg.y * gridSize + 1, gridSize - 2, gridSize - 2);
+    });
+  }
+
+  function setDirection(player, newDx, newDy) {
+    // 防止直接 180 度反向自殺
+    if (player.dx + newDx === 0 && player.dy + newDy === 0) return;
+    player.nextDx = newDx;
+    player.nextDy = newDy;
+  }
+
+  document.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+
+    // 防止方向鍵捲動網頁視窗
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
+      e.preventDefault();
+    }
+
+    // P1 控制 (WASD)
+    if (key === "w") { startGame(); setDirection(p1, 0, -1); }
+    else if (key === "s") { startGame(); setDirection(p1, 0, 1); }
+    else if (key === "a") { startGame(); setDirection(p1, -1, 0); }
+    else if (key === "d") { startGame(); setDirection(p1, 1, 0); }
+
+    // P2 控制 (方向鍵)
+    else if (e.key === "ArrowUp") { startGame(); setDirection(p2, 0, -1); }
+    else if (e.key === "ArrowDown") { startGame(); setDirection(p2, 0, 1); }
+    else if (e.key === "ArrowLeft") { startGame(); setDirection(p2, -1, 0); }
+    else if (e.key === "ArrowRight") { startGame(); setDirection(p2, 1, 0); }
+  });
+
+  // 頁面載入後初始化
+  initGame();
+</script>
+</body>
+</html>
