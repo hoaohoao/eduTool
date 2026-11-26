@@ -1,0 +1,3103 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深淵編年史 - D&D 百層地城與勇者殿堂</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #0c0a09;
+            --panel-bg: #181412;
+            --border-gold: #8c6d46;
+            --border-highlight: #d4af37;
+            --text-parchment: #e8dcc5;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-parchment);
+            font-family: 'Noto Sans TC', sans-serif;
+            background-image: radial-gradient(circle at 50% 0%, #241c17 0%, #0c0a09 85%);
+            user-select: none;
+        }
+
+        .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+
+        .font-mono-code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .rpg-panel {
+            background: linear-gradient(180deg, #211b17 0%, #14100e 100%);
+            border: 2px solid var(--border-gold);
+            box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.85), 0 6px 14px rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .rpg-panel::before {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px; right: 2px; bottom: 2px;
+            border: 1px solid rgba(212, 175, 55, 0.18);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        .rpg-btn {
+            background: linear-gradient(180deg, #382e26 0%, #221b16 100%);
+            border: 2px solid #785d3c;
+            color: #f3e6d0;
+            box-shadow: 0 3px 0 #100c09, inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            transition: all 0.08s ease;
+        }
+
+        .rpg-btn:hover:not(:disabled) {
+            background: linear-gradient(180deg, #493b31 0%, #2b221c 100%);
+            border-color: #d4af37;
+            color: #ffffff;
+        }
+
+        .rpg-btn:active:not(:disabled) {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 #100c09;
+        }
+
+        .rpg-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .rpg-btn-danger {
+            background: linear-gradient(180deg, #6b1d1d 0%, #421010 100%);
+            border-color: #a83232;
+        }
+        .rpg-btn-danger:hover:not(:disabled) {
+            background: linear-gradient(180deg, #852424 0%, #541515 100%);
+            border-color: #ff6b6b;
+        }
+
+        .rpg-btn-magic {
+            background: linear-gradient(180deg, #1b3d69 0%, #102440 100%);
+            border-color: #326da8;
+        }
+        .rpg-btn-magic:hover:not(:disabled) {
+            background: linear-gradient(180deg, #245087 0%, #152e52 100%);
+            border-color: #6bb5ff;
+        }
+
+        .rpg-btn-royal {
+            background: linear-gradient(180deg, #5b21b6 0%, #3b0764 100%);
+            border-color: #a855f7;
+        }
+        .rpg-btn-royal:hover:not(:disabled) {
+            background: linear-gradient(180deg, #6d28d9 0%, #4c1d95 100%);
+            border-color: #e9d5ff;
+        }
+
+        .rpg-btn-emerald {
+            background: linear-gradient(180deg, #065f46 0%, #064e3b 100%);
+            border-color: #10b981;
+        }
+        .rpg-btn-emerald:hover:not(:disabled) {
+            background: linear-gradient(180deg, #047857 0%, #065f46 100%);
+            border-color: #6ee7b7;
+        }
+
+        .rpg-btn-refine {
+            background: linear-gradient(180deg, #92400e 0%, #451a03 100%);
+            border-color: #f59e0b;
+            color: #fef3c7;
+        }
+        .rpg-btn-refine:hover:not(:disabled) {
+            background: linear-gradient(180deg, #b45309 0%, #78350f 100%);
+            border-color: #fde047;
+            color: #ffffff;
+        }
+
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #120f0d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #5c472e;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8c6d46;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+        }
+
+        @keyframes pulseGold {
+            0%, 100% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+            50% { box-shadow: 0 0 22px rgba(212, 175, 55, 0.7); }
+        }
+        .boss-glow {
+            animation: pulseGold 2s infinite;
+        }
+
+        @keyframes diceShakeHero {
+            0%, 100% { transform: rotate(0deg) scale(1); box-shadow: 0 0 14px rgba(52, 211, 153, 0.75); }
+            25% { transform: rotate(-16deg) scale(1.1); box-shadow: 0 0 22px rgba(251, 191, 36, 0.95); }
+            50% { transform: rotate(14deg) scale(1.14); box-shadow: 0 0 18px rgba(56, 189, 248, 0.9); }
+            75% { transform: rotate(-10deg) scale(1.08); box-shadow: 0 0 22px rgba(251, 191, 36, 0.95); }
+        }
+        @keyframes diceShakeEnemy {
+            0%, 100% { transform: rotate(0deg) scale(1); box-shadow: 0 0 14px rgba(244, 63, 94, 0.8); }
+            25% { transform: rotate(16deg) scale(1.1); box-shadow: 0 0 24px rgba(239, 68, 68, 0.95); }
+            50% { transform: rotate(-14deg) scale(1.14); box-shadow: 0 0 20px rgba(168, 85, 247, 0.9); }
+            75% { transform: rotate(10deg) scale(1.08); box-shadow: 0 0 24px rgba(239, 68, 68, 0.95); }
+        }
+        .dice-rolling-hero {
+            animation: diceShakeHero 0.14s infinite;
+        }
+        .dice-rolling-enemy {
+            animation: diceShakeEnemy 0.14s infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-2 sm:p-3 lg:p-4 max-w-[1440px] mx-auto">
+
+    <!-- 三欄式響應式主容器：最左側勇者殿堂 + 中右側主遊戲區 -->
+    <div class="flex flex-col lg:flex-row gap-3 items-stretch">
+
+        <!-- ==================== 畫面最左側：百層制霸勇者殿堂 (Hall of Fame) ==================== -->
+        <aside class="rpg-panel p-3 w-full lg:w-[265px] xl:w-[285px] shrink-0 flex flex-col justify-between order-2 lg:order-1">
+            <div>
+                <div class="flex items-center justify-between border-b border-amber-700/60 pb-2 mb-2.5">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-crown text-amber-400 text-base drop-shadow"></i>
+                        <h2 class="text-sm font-black tracking-wide text-amber-300">百層制霸勇者殿堂</h2>
+                    </div>
+                    <button onclick="fetchHallOfFame()" id="btn-refresh-hof" title="從 GAS 重新讀取勇者名單" class="rpg-btn px-2 py-1 rounded text-xs text-amber-300 flex items-center gap-1">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+
+                <p class="text-[11px] text-stone-400 mb-2 leading-snug">
+                    征服地下 <span class="text-amber-400 font-bold">100 層</span> 深淵魔龍皇的傳奇勇者名單（同步自 GAS 雲端）。
+                </p>
+
+                <div id="hof-list" class="space-y-2 max-h-[260px] lg:max-h-[560px] overflow-y-auto pr-1"></div>
+            </div>
+
+            <div class="mt-3 pt-2 border-t border-stone-800 text-[11px] text-stone-500 flex justify-between items-center">
+                <span id="hof-source-label"><i class="fa-solid fa-database mr-1"></i>本地/預設殿堂</span>
+                <span id="hof-count-label">共 0 位勇者</span>
+            </div>
+        </aside>
+
+        <!-- ==================== 畫面中央與右側：主遊戲區 ==================== -->
+        <div class="flex-grow flex flex-col justify-between gap-3 order-1 lg:order-2 min-w-0">
+
+            <!-- 頂部狀態與 5 碼 GAS 存讀檔列 -->
+            <header class="rpg-panel p-3 flex flex-col xl:flex-row items-center justify-between gap-3">
+                <div class="flex items-center gap-3 w-full xl:w-auto justify-between xl:justify-start">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-amber-950 border border-amber-500/60 flex items-center justify-center text-amber-400 text-xl shadow-inner shrink-0">
+                            <i class="fa-solid fa-dungeon"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h1 class="text-lg sm:text-xl font-black tracking-wider text-amber-400 drop-shadow">
+                                    深淵編年史 <span class="font-cinzel text-xs font-bold text-amber-200/70 hidden sm:inline">ABYSS CHRONICLES</span>
+                                </h1>
+                                <span id="header-floor-status" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-stone-900 border border-amber-600/50 text-amber-300">
+                                    探索中・B1F / 100F
+                                </span>
+                                <span id="gear-tier-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-600/50 text-amber-200">
+                                    裝備池：第 1 階 (6/21件)
+                                </span>
+                            </div>
+                            <p class="text-xs text-stone-400 mt-0.5" id="connection-status">
+                                <i class="fa-solid fa-cloud text-emerald-400 mr-1"></i>儲存模式：GAS 雲端試算表已連線
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5 碼英數存讀檔控制區 -->
+                <div class="flex flex-wrap items-center justify-center gap-2 w-full xl:w-auto">
+                    <div class="flex items-center bg-stone-950 border border-amber-700/70 rounded-lg px-2.5 py-1">
+                        <span class="text-xs text-amber-500/90 mr-1.5 font-bold">5碼代號</span>
+                        <input type="text" id="save-code-input" maxlength="5" placeholder="A1B2C" 
+                            class="w-20 bg-transparent text-amber-300 font-mono-code font-bold text-center uppercase tracking-widest focus:outline-none text-sm"
+                            oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()">
+                        <button onclick="generateRandomCode()" title="隨機產生 5 碼代號" class="text-stone-400 hover:text-amber-400 ml-1 px-1">
+                            <i class="fa-solid fa-dice"></i>
+                        </button>
+                    </div>
+
+                    <button onclick="saveGame()" id="btn-save" class="rpg-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> 存檔 (SAVE)
+                    </button>
+                    <button onclick="loadGame()" id="btn-load" class="rpg-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-cloud-arrow-down text-sky-400"></i> 讀檔 (LOAD)
+                    </button>
+                    <button onclick="openGasModal()" title="GAS 雲端設定與測試傳送" class="hidden rpg-btn px-2.5 py-1.5 rounded-lg text-xs sm:text-sm text-amber-300 flex items-center gap-1">
+                        <i class="fa-solid fa-gear"></i> <span class="hidden sm:inline text-xs">GAS設定</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 畫面上半部：雙視窗（18x18 迷霧大地圖 + 動態視界 & 雙骰命運判定台） -->
+            <main class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                
+                <!-- 左側：18x18 迷霧探索大地圖 (md:col-span-7) -->
+                <section class="rpg-panel p-3 md:col-span-7 flex flex-col items-center justify-between">
+                    <div class="w-full flex justify-between items-center mb-2 border-b border-stone-700/70 pb-1.5">
+                        <span class="text-sm font-bold text-amber-300"><i class="fa-solid fa-map-location-dot mr-1.5"></i>深淵迷霧大地圖 (18×18)</span>
+                        <span class="text-xs bg-stone-950 px-2 py-0.5 rounded border border-stone-700 text-amber-400 font-bold" id="floor-badge">地下 1 層 (B1F)</span>
+                    </div>
+                    
+                    <div class="relative w-full max-w-[385px] aspect-square bg-stone-950 rounded-lg border-2 border-stone-800 shadow-inner flex items-center justify-center overflow-hidden">
+                        <canvas id="mapCanvas" class="w-full h-full block"></canvas>
+                    </div>
+
+                    <!-- 圖例說明 -->
+                    <div class="w-full flex flex-wrap justify-center gap-2 mt-2 text-[11px] text-stone-400">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block rounded-full bg-emerald-400"></span>勇者</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block rounded-xs bg-stone-500 border border-stone-400"></span>石牆</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block rounded-xs bg-rose-500"></span>怪物</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block rounded-xs bg-amber-400"></span>寶箱</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block rounded-xs bg-orange-500"></span>已觸發陷阱</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block rounded-xs bg-cyan-400"></span>樓梯</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block rounded-xs bg-purple-500"></span>100F魔王</span>
+                    </div>
+                </section>
+
+                <!-- 右側：動態視界（含敵我攻防浮層） + 敵我雙骰命運判定台 (md:col-span-5) -->
+                <section class="rpg-panel p-3 md:col-span-5 flex flex-col justify-between gap-2.5">
+                    <div>
+                        <div class="w-full flex justify-between items-center mb-1.5 border-b border-stone-700/70 pb-1">
+                            <span class="text-sm font-bold text-amber-300"><i class="fa-solid fa-eye mr-1.5"></i>動態視界</span>
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700/50" id="stage-status-label">🧭 地城探索中</span>
+                        </div>
+
+                        <div class="relative w-full h-[168px] bg-stone-950 rounded-lg border-2 border-stone-800 overflow-hidden shadow-inner">
+                            <canvas id="stageCanvas" class="w-full h-full block"></canvas>
+                            
+                            <!-- 遭遇怪物時的頂部血條浮層 -->
+                            <div id="enemy-hud" class="hidden absolute top-1.5 left-1.5 right-1.5 bg-stone-950/90 border border-rose-800/90 rounded-lg px-2 py-1 backdrop-blur-xs">
+                                <div class="flex justify-between items-center text-[11px] mb-0.5">
+                                    <span class="font-bold text-rose-400 flex items-center gap-1 truncate" id="enemy-name">腐蝕史萊姆 LV.1</span>
+                                    <span class="font-mono-code text-stone-200 font-bold shrink-0 ml-1" id="enemy-hp-text">25 / 25</span>
+                                </div>
+                                <div class="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden border border-stone-700">
+                                    <div id="enemy-hp-bar" class="h-full bg-gradient-to-r from-rose-700 via-rose-500 to-amber-500 transition-all duration-200" style="width: 100%"></div>
+                                </div>
+                            </div>
+
+                            <!-- 動態視界左下角：我方即時攻防數值標籤 -->
+                            <div id="stage-hero-stats" class="absolute bottom-1.5 left-1.5 bg-stone-950/88 border border-emerald-700/80 rounded px-2 py-0.5 text-[10px] font-mono-code text-emerald-300 flex items-center gap-2 backdrop-blur-xs shadow">
+                                <span class="font-bold text-emerald-400"><i class="fa-solid fa-shield-halved mr-0.5"></i>我方</span>
+                                <span id="stage-hero-atk">ATK:9</span>
+                                <span id="stage-hero-mag" class="text-sky-300">MAG:13</span>
+                                <span id="stage-hero-def" class="text-amber-300">DEF:4</span>
+                            </div>
+
+                            <!-- 動態視界右下角：敵方即時攻防數值標籤（戰鬥時顯示） -->
+                            <div id="stage-enemy-stats" class="hidden absolute bottom-1.5 right-1.5 bg-stone-950/88 border border-rose-700/80 rounded px-2 py-0.5 text-[10px] font-mono-code text-rose-300 flex items-center gap-2 backdrop-blur-xs shadow">
+                                <span class="font-bold text-rose-400"><i class="fa-solid fa-skull mr-0.5"></i>敵方</span>
+                                <span id="stage-enemy-atk">ATK:7</span>
+                                <span id="stage-enemy-def" class="text-amber-300">DEF:1</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 下半部：敵我雙骰命運判定台 -->
+                    <div class="bg-stone-950/90 border border-amber-700/60 rounded-lg p-2.5 flex flex-col justify-between flex-grow">
+                        <div class="flex justify-between items-center border-b border-stone-800 pb-1 mb-2">
+                            <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-dice text-amber-400"></i> 敵我雙骰判定台 (1D6)
+                            </span>
+                            <span class="text-[10px] text-stone-400 font-bold">沉穩回合制節奏</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 my-auto">
+                            <div id="hero-dice-card" class="bg-emerald-950/25 border border-emerald-700/50 rounded-lg p-2 flex flex-col items-center text-center transition-all">
+                                <span id="hero-dice-badge" class="text-[10px] font-bold text-emerald-300 mb-1 truncate w-full">
+                                    <i class="fa-solid fa-shield-halved mr-0.5"></i> 勇者命運骰
+                                </span>
+                                <div id="hero-dice-box" class="w-[54px] h-[54px] rounded-xl bg-gradient-to-br from-amber-100 via-amber-200 to-amber-400 border-2 border-emerald-500 shadow-md flex items-center justify-center mb-1">
+                                    <canvas id="heroDiceCanvas" width="54" height="54" class="w-full h-full block"></canvas>
+                                </div>
+                                <div id="hero-dice-point" class="text-xs font-black font-mono-code text-emerald-300">-- 點</div>
+                                <div id="hero-dice-effect" class="text-[10px] font-bold text-stone-300 truncate w-full">等待勇者行動</div>
+                            </div>
+
+                            <div id="enemy-dice-card" class="bg-rose-950/25 border border-rose-800/50 rounded-lg p-2 flex flex-col items-center text-center transition-all">
+                                <span id="enemy-dice-badge" class="text-[10px] font-bold text-rose-300 mb-1 truncate w-full">
+                                    <i class="fa-solid fa-skull mr-0.5"></i> 敵方命運骰
+                                </span>
+                                <div id="enemy-dice-box" class="w-[54px] h-[54px] rounded-xl bg-gradient-to-br from-rose-200 via-rose-300 to-rose-500 border-2 border-rose-600 shadow-md flex items-center justify-center mb-1">
+                                    <canvas id="enemyDiceCanvas" width="54" height="54" class="w-full h-full block"></canvas>
+                                </div>
+                                <div id="enemy-dice-point" class="text-xs font-black font-mono-code text-rose-300">-- 點</div>
+                                <div id="enemy-dice-effect" class="text-[10px] font-bold text-stone-300 truncate w-full">等待敵方行動</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-1 mt-2 text-[10px] font-mono-code text-center">
+                            <div class="bg-stone-900/90 border border-stone-800 rounded px-1 py-0.5 text-rose-400">1:未中(0x)</div>
+                            <div class="bg-stone-900/90 border border-stone-800 rounded px-1 py-0.5 text-amber-400">2:低效(0.6x)</div>
+                            <div class="bg-stone-900/90 border border-stone-800 rounded px-1 py-0.5 text-stone-300">3~4:正常(1x)</div>
+                            <div class="bg-stone-900/90 border border-stone-800 rounded px-1 py-0.5 text-sky-300 col-span-1">5:強擊(1.3x)</div>
+                            <div class="bg-stone-900/90 border border-amber-700/60 rounded px-1 py-0.5 text-amber-300 font-bold col-span-2">6:暴擊兩倍(2.0x)</div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <!-- 畫面下半部：人物狀態 + 指令區 + 詳細冒險日誌 -->
+            <footer class="grid grid-cols-1 xl:grid-cols-12 gap-3">
+                
+                <!-- 左側：人物狀態欄 (4 cols) -->
+                <section class="rpg-panel p-3 xl:col-span-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center border-b border-stone-700/70 pb-1.5 mb-2">
+                            <span class="text-sm font-bold text-amber-300"><i class="fa-solid fa-shield-halved mr-1.5"></i>冒險者狀態</span>
+                            <div class="flex items-center gap-1.5">
+                                <span id="reborn-badge" class="hidden text-[10px] font-bold bg-emerald-900/80 text-emerald-200 border border-emerald-500 px-1.5 py-0.5 rounded">轉生繼承者</span>
+                                <span id="endless-badge" class="hidden text-[10px] font-bold bg-purple-900/80 text-purple-200 border border-purple-500 px-1.5 py-0.5 rounded">無盡制霸者</span>
+                                <span class="text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded" id="stat-lv">LV. 1</span>
+                            </div>
+                        </div>
+
+                        <!-- HP 血條 -->
+                        <div class="mb-2">
+                            <div class="flex justify-between text-xs mb-0.5">
+                                <span class="text-rose-400 font-bold"><i class="fa-solid fa-heart mr-1"></i>生命 (HP)</span>
+                                <span class="font-mono-code font-bold" id="stat-hp">48 / 48</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-stone-900 rounded-full p-0.5 border border-stone-700">
+                                <div id="bar-hp" class="h-full bg-gradient-to-r from-rose-700 to-rose-500 rounded-full transition-all duration-300" style="width: 100%"></div>
+                            </div>
+                        </div>
+
+                        <!-- MP 魔力條 -->
+                        <div class="mb-2">
+                            <div class="flex justify-between text-xs mb-0.5">
+                                <span class="text-sky-400 font-bold"><i class="fa-solid fa-wand-sparkles mr-1"></i>魔力 (MP)</span>
+                                <span class="font-mono-code font-bold" id="stat-mp">24 / 24</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-stone-900 rounded-full p-0.5 border border-stone-700">
+                                <div id="bar-mp" class="h-full bg-gradient-to-r from-sky-700 to-sky-400 rounded-full transition-all duration-300" style="width: 100%"></div>
+                            </div>
+                        </div>
+
+                        <!-- EXP 經驗條 -->
+                        <div class="mb-2.5">
+                            <div class="flex justify-between text-xs mb-0.5">
+                                <span class="text-amber-400 font-bold"><i class="fa-solid fa-star mr-1"></i>經驗 (EXP)</span>
+                                <span class="font-mono-code text-stone-300" id="stat-exp">0 / 20</span>
+                            </div>
+                            <div class="w-full h-2 bg-stone-900 rounded-full overflow-hidden border border-stone-800">
+                                <div id="bar-exp" class="h-full bg-amber-500 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 攻防屬性與當前裝備 -->
+                    <div class="space-y-1.5">
+                        <div class="grid grid-cols-3 gap-1.5 bg-stone-950/80 p-1.5 rounded-lg border border-stone-800 text-center">
+                            <div>
+                                <div class="text-[10px] text-stone-400">物理攻擊 (ATK)</div>
+                                <div class="text-sm font-bold text-amber-300 font-mono-code" id="stat-atk">9</div>
+                            </div>
+                            <div class="border-x border-stone-800">
+                                <div class="text-[10px] text-stone-400">魔法攻擊 (MAG)</div>
+                                <div class="text-sm font-bold text-sky-300 font-mono-code" id="stat-matk">13</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-stone-400">物理防禦 (DEF)</div>
+                                <div class="text-sm font-bold text-emerald-300 font-mono-code" id="stat-def">4</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[11px] bg-stone-950/60 px-2 py-1 rounded border border-stone-800/80 text-stone-300">
+                            <span class="truncate"><i class="fa-solid fa-khanda text-amber-400 mr-1"></i><span id="hud-weapon">生鏽短劍</span></span>
+                            <span class="truncate ml-2"><i class="fa-solid fa-shirt text-emerald-400 mr-1"></i><span id="hud-armor">粗布衣</span></span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 中間：可執行指令區 (4 cols) -->
+                <section class="rpg-panel p-3 xl:col-span-4 flex flex-col justify-between">
+                    <div class="border-b border-stone-700/70 pb-1.5 mb-2 flex justify-between items-center">
+                        <span class="text-sm font-bold text-amber-300"><i class="fa-solid fa-gamepad mr-1.5"></i>行動指令</span>
+                        <span class="text-[11px] text-stone-400">支援 WASD / 方向鍵</span>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-2.5 my-auto items-center">
+                        <div class="col-span-5 grid grid-cols-3 gap-1 max-w-[144px] mx-auto">
+                            <div></div>
+                            <button onclick="handleMove(0, -1)" id="btn-up" class="rpg-btn h-11 rounded-lg flex items-center justify-center text-base" title="前 / 上 (W / ↑)">
+                                <i class="fa-solid fa-caret-up"></i>
+                            </button>
+                            <div></div>
+
+                            <button onclick="handleMove(-1, 0)" id="btn-left" class="rpg-btn h-11 rounded-lg flex items-center justify-center text-base" title="左 (A / ←)">
+                                <i class="fa-solid fa-caret-left"></i>
+                            </button>
+                            <div class="h-11 rounded-lg bg-stone-950/70 border border-stone-800 flex items-center justify-center text-xs text-stone-500">
+                                <i class="fa-solid fa-compass"></i>
+                            </div>
+                            <button onclick="handleMove(1, 0)" id="btn-right" class="rpg-btn h-11 rounded-lg flex items-center justify-center text-base" title="右 (D / →)">
+                                <i class="fa-solid fa-caret-right"></i>
+                            </button>
+
+                            <div></div>
+                            <button onclick="handleMove(0, 1)" id="btn-down" class="rpg-btn h-11 rounded-lg flex items-center justify-center text-base" title="後 / 下 (S / ↓)">
+                                <i class="fa-solid fa-caret-down"></i>
+                            </button>
+                            <div></div>
+                        </div>
+
+                        <div class="col-span-7 flex flex-col gap-1.5">
+                            <button onclick="handleAttack()" id="btn-attack" class="rpg-btn rpg-btn-danger py-1.5 px-2.5 rounded-lg flex flex-col items-center justify-center">
+                                <span class="text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-khanda"></i> 物理攻擊
+                                </span>
+                                <span id="attack-dmg-preview" class="text-[11px] font-mono-code text-amber-200/95 mt-0.5">
+                                    1x:8 / 暴擊:17
+                                </span>
+                            </button>
+
+                            <button onclick="handleMagic()" id="btn-magic" class="rpg-btn rpg-btn-magic py-1.5 px-2.5 rounded-lg flex flex-col items-center justify-center">
+                                <span class="text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-fire-flame-curved"></i> 奧術火球
+                                </span>
+                                <span id="magic-dmg-preview" class="text-[11px] font-mono-code text-sky-200/95 mt-0.5">
+                                    1x:16 / 暴擊:32 (8MP)
+                                </span>
+                            </button>
+
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <button onclick="openInventoryModal()" id="btn-bag" class="rpg-btn py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-sack-xmark text-amber-400"></i> 物品 <span id="bag-count" class="bg-stone-950 px-1.5 rounded text-amber-300 font-mono-code">5</span>
+                                </button>
+                                <button onclick="handleStairsAction()" id="btn-stairs" class="rpg-btn py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 text-cyan-300">
+                                    <i class="fa-solid fa-stairs"></i> 下樓
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 右側：詳細冒險日誌 (4 cols) -->
+                <section class="rpg-panel p-3 xl:col-span-4 flex flex-col">
+                    <div class="border-b border-stone-700/70 pb-1.5 mb-2 flex justify-between items-center">
+                        <span class="text-sm font-bold text-amber-300"><i class="fa-solid fa-scroll mr-1.5"></i>冒險日誌</span>
+                        <button onclick="resetGameConfirm()" class="text-[11px] text-stone-400 hover:text-rose-400 underline">重新開始</button>
+                    </div>
+                    <div id="adventure-log" class="h-40 xl:h-44 overflow-y-auto bg-stone-950/90 rounded-lg p-2.5 border border-stone-800 text-xs sm:text-sm space-y-1.5 leading-relaxed"></div>
+                </section>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ==================== 彈窗 1：物品欄與精鍊說明 (Inventory Modal) ==================== -->
+    <div id="inventory-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+        <div class="rpg-panel w-full max-w-md p-4">
+            <div class="flex justify-between items-center border-b border-stone-700 pb-2 mb-3">
+                <h2 class="text-base font-bold text-amber-400"><i class="fa-solid fa-briefcase mr-2"></i>冒險者行囊與裝備精鍊</h2>
+                <button onclick="closeInventoryModal()" class="text-stone-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2 mb-2 bg-stone-950 p-2.5 rounded-lg border border-stone-800 text-xs">
+                <div>
+                    <span class="text-stone-500 block">手持武器</span>
+                    <span class="text-amber-300 font-bold" id="equip-weapon">生鏽短劍 (+3 ATK)</span>
+                    <span class="text-[10px] text-amber-400/80 block mt-0.5" id="equip-weapon-refine">精鍊 +0 (下級成功率 100%)</span>
+                </div>
+                <div>
+                    <span class="text-stone-500 block">身穿防具</span>
+                    <span class="text-emerald-300 font-bold" id="equip-armor">粗布衣 (+2 DEF)</span>
+                    <span class="text-[10px] text-emerald-400/80 block mt-0.5" id="equip-armor-refine">精鍊 +0 (下級成功率 100%)</span>
+                </div>
+            </div>
+
+            <div class="bg-amber-950/30 border border-amber-700/40 rounded px-2.5 py-1.5 mb-2.5 text-[11px] text-amber-200/90 leading-snug">
+                <i class="fa-solid fa-hammer text-amber-400 mr-1"></i><b>換裝與精鍊規則：</b>更換裝備時，換下來的舊裝備會完整保留在行囊中；抽到重複裝備或點擊行囊中同款裝備的「精鍊」按鈕，即可消耗並精鍊身上裝備（最高 +15）。
+            </div>
+
+            <div id="inventory-list" class="max-h-60 overflow-y-auto space-y-2 pr-1"></div>
+
+            <div class="mt-4 text-right">
+                <button onclick="closeInventoryModal()" class="rpg-btn px-4 py-1.5 rounded-lg text-sm font-bold">關閉行囊</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 彈窗 2：百層制霸・傳奇誕生留名視窗 ==================== -->
+    <div id="victory-100-modal" class="hidden fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="rpg-panel boss-glow w-full max-w-md p-5 border-amber-400 text-center">
+            <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-3xl shadow-lg">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-black text-amber-300 tracking-wider mb-1">百層制霸・傳奇誕生！</h2>
+            <p class="text-xs text-purple-300 font-bold mb-3">你擊敗了鎮守地下 100 層的【深淵混沌魔龍皇】！</p>
+
+            <div class="bg-stone-950/90 border border-amber-700/50 rounded-lg p-3 mb-4 text-xs text-stone-300 space-y-1">
+                <div>通關等級：<span class="text-amber-300 font-bold font-mono-code" id="vic-lv">LV. 35</span></div>
+                <div>最終戰力：<span class="text-rose-300 font-bold font-mono-code" id="vic-stats">ATK 65 / MAG 72 / DEF 40</span></div>
+                <div class="text-stone-400 pt-1">留下你的勇者大名，永載於左側「百層制霸勇者殿堂」並開啟 <span class="text-purple-300 font-bold">101 層無盡深淵模式</span>！</div>
+            </div>
+
+            <div class="mb-4 text-left">
+                <label class="block text-xs font-bold text-amber-300 mb-1">請輸入勇者大名（最多 12 字）：</label>
+                <input type="text" id="hero-name-input" maxlength="12" placeholder="例如：亞瑟王、深淵行者" 
+                    class="w-full bg-stone-950 border-2 border-amber-600/80 rounded-lg px-3 py-2 text-sm text-amber-200 font-bold focus:outline-none focus:border-amber-400">
+            </div>
+
+            <button onclick="submitHallOfFame()" id="btn-submit-hof" class="rpg-btn rpg-btn-royal w-full py-2.5 rounded-lg text-sm font-black tracking-wide flex items-center justify-center gap-2">
+                <i class="fa-solid fa-feather-pointed"></i> 刻入勇者殿堂並進入 B101F 無盡模式
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== 彈窗 3：GAS 雲端設定、Code.gs 與第 99 層測試傳送 ==================== -->
+    <div id="gas-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+        <div class="rpg-panel w-full max-w-2xl p-4 max-h-[92vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-stone-700 pb-2 mb-3">
+                <h2 class="text-base font-bold text-amber-400"><i class="fa-brands fa-google-drive mr-2"></i>GAS 雲端存檔與勇者殿堂設定</h2>
+                <button onclick="closeGasModal()" class="text-stone-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="bg-purple-950/40 border border-purple-700/60 rounded-lg p-3 mb-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div>
+                    <div class="text-xs font-bold text-purple-300"><i class="fa-solid fa-wand-sparkles mr-1"></i>快速體驗第 100 層魔王戰</div>
+                    <div class="text-[11px] text-stone-300">將角色強化至百層戰力並傳送至第 99 層樓梯前，踩上樓梯即可挑戰最終魔王！</div>
+                </div>
+                <button onclick="warpToFloor99Test()" class="rpg-btn rpg-btn-royal px-3 py-1.5 rounded-lg text-xs font-bold shrink-0">
+                    傳送至 B99F 樓梯前
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-amber-300 mb-1">Google Apps Script Web App URL：</label>
+                <div class="flex gap-2">
+                    <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/xxxxxx/exec" 
+                        class="flex-grow bg-stone-950 border border-stone-700 rounded-lg px-3 py-1.5 text-xs text-stone-200 focus:border-amber-500 focus:outline-none">
+                    <button onclick="saveGasUrl()" class="rpg-btn px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400">儲存設定</button>
+                </div>
+                <p class="text-[11px] text-stone-400 mt-1">預設已綁定 GAS 雲端；若留空或更換網址可自訂後端連線。</p>
+            </div>
+
+            <div class="bg-stone-950 border border-stone-800 rounded-lg p-3">
+                <div class="flex justify-between items-center mb-1.5">
+                    <span class="text-xs font-bold text-amber-400">完整 GAS 後端程式碼 (Code.gs)</span>
+                    <button onclick="copyGasCode()" class="text-xs bg-stone-800 hover:bg-stone-700 text-amber-300 px-2.5 py-1 rounded">
+                        <i class="fa-regular fa-copy mr-1"></i>一鍵複製程式碼
+                    </button>
+                </div>
+                <pre id="gas-code-snippet" class="text-[11px] font-mono-code text-stone-300 overflow-x-auto p-2.5 bg-black/60 rounded leading-normal select-all">function getOrCreateSheet(ss, name, headers) {
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.appendRow(headers);
+  }
+  return sheet;
+}
+
+function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var payload = JSON.parse(e.postData.contents);
+  var action = payload.action || 'save';
+
+  if (action === 'add_hof') {
+    var hofSheet = getOrCreateSheet(ss, 'HallOfFame', ['Name', 'Level', 'ATK', 'MAG', 'DEF', 'Date']);
+    var d = payload.record;
+    var dateStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+    hofSheet.appendRow([d.name, d.lv, d.atk, d.matk, d.def, dateStr]);
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  var saveSheet = getOrCreateSheet(ss, 'Saves', ['Code', 'StateJSON', 'UpdatedAt']);
+  var code = String(payload.code).toUpperCase();
+  var stateJson = JSON.stringify(payload.state);
+  var data = saveSheet.getDataRange().getValues();
+
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]).toUpperCase() === code) {
+      saveSheet.getRange(i + 1, 2).setValue(stateJson);
+      saveSheet.getRange(i + 1, 3).setValue(new Date());
+      return ContentService.createTextOutput(JSON.stringify({ status: 'updated' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  saveSheet.appendRow([code, stateJson, new Date()]);
+  return ContentService.createTextOutput(JSON.stringify({ status: 'created' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var action = e.parameter.action || 'load';
+
+  if (action === 'get_hof') {
+    var hofSheet = getOrCreateSheet(ss, 'HallOfFame', ['Name', 'Level', 'ATK', 'MAG', 'DEF', 'Date']);
+    var rows = hofSheet.getDataRange().getValues();
+    var list = [];
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0]) {
+        list.push({
+          name: String(rows[i][0]),
+          lv: Number(rows[i][1]) || 1,
+          atk: Number(rows[i][2]) || 0,
+          matk: Number(rows[i][3]) || 0,
+          def: Number(rows[i][4]) || 0,
+          date: String(rows[i][5] || '')
+        });
+      }
+    }
+    list.reverse();
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok', list: list }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  var code = String(e.parameter.code || '').toUpperCase();
+  var saveSheet = getOrCreateSheet(ss, 'Saves', ['Code', 'StateJSON', 'UpdatedAt']);
+  var data = saveSheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]).toUpperCase() === code) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'ok',
+        state: JSON.parse(data[i][1])
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  return ContentService.createTextOutput(JSON.stringify({ status: 'not_found' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 彈窗 4：通用訊息確認框 ==================== -->
+    <div id="custom-dialog" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+        <div class="rpg-panel w-full max-w-md p-4 text-center">
+            <h3 id="dialog-title" class="text-base font-bold text-amber-400 mb-2">提示</h3>
+            <p id="dialog-message" class="text-sm text-stone-200 mb-4 leading-relaxed whitespace-pre-line"></p>
+            <div id="dialog-buttons" class="flex flex-wrap justify-center gap-2.5"></div>
+        </div>
+    </div>
+
+<script>
+/**
+ * ============================================================================
+ * 1. 核心常數、怪物圖鑑、21 件階梯式裝備庫與精鍊系統參數
+ * ============================================================================
+ */
+const MAP_SIZE = 18;
+const FIREBALL_MP_COST = 8;
+const MAX_REFINE_LEVEL = 15;
+const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbyHgfq9mb2OrFNPodlvKqN5NS0EXlvNgBo1FJfiJv5cLbi52898RK1WapdtWN1VCMOm/exec";
+
+const TILE = {
+    WALL: 0,
+    FLOOR: 1,
+    CHEST_CLOSED: 2,
+    CHEST_OPEN: 3,
+    STAIRS: 4,
+    BOSS_ALTAR: 5,
+    TRAP_HIDDEN: 6,
+    TRAP_REVEALED: 7
+};
+
+const MONSTER_TYPES = [
+    { id: 'slime', name: '腐蝕史萊姆', baseHp: 25, baseAtk: 7, baseDef: 1, exp: 14, color: '#4ade80', shape: 'slime' },
+    { id: 'goblin', name: '哥布林斥候', baseHp: 39, baseAtk: 11, baseDef: 3, exp: 23, color: '#a3e635', shape: 'goblin' },
+    { id: 'skeleton', name: '骷髏騎士', baseHp: 57, baseAtk: 15, baseDef: 5, exp: 36, color: '#e2e8f0', shape: 'skeleton' },
+    { id: 'golem', name: '熔岩巨像', baseHp: 84, baseAtk: 21, baseDef: 7, exp: 56, color: '#fb923c', shape: 'golem' },
+    { id: 'demon', name: '深淵炎魔', baseHp: 116, baseAtk: 28, baseDef: 11, exp: 92, color: '#f87171', shape: 'demon' }
+];
+
+const MINI_BOSS_TYPES = [
+    { id: 'mb_knight', name: '墮落黑騎士・卡恩', baseHp: 126, baseAtk: 20, baseDef: 6, exp: 140, color: '#f59e0b', shape: 'miniboss' },
+    { id: 'mb_lich', name: '冥淵巫妖王・莫甘', baseHp: 155, baseAtk: 24, baseDef: 7, exp: 180, color: '#a855f7', shape: 'miniboss' },
+    { id: 'mb_behemoth', name: '深淵煉獄巨獸・巴哈姆', baseHp: 198, baseAtk: 30, baseDef: 9, exp: 235, color: '#ef4444', shape: 'miniboss' },
+    { id: 'mb_valkyrie', name: '暗影女武神・芙蕾雅', baseHp: 245, baseAtk: 36, baseDef: 12, exp: 310, color: '#ec4899', shape: 'miniboss' }
+];
+
+const ITEM_DB = {
+    'potion_hp': { id: 'potion_hp', name: '治療藥水', type: 'consumable', desc: '恢復 32 點生命值', healHp: 32, icon: 'fa-flask', color: 'text-rose-400' },
+    'potion_mp': { id: 'potion_mp', name: '魔力靈藥', type: 'consumable', desc: '恢復 22 點魔力值', healMp: 22, icon: 'fa-bottle-droplet', color: 'text-sky-400' },
+    'elixir': { id: 'elixir', name: '聖靈藥劑', type: 'consumable', desc: '完全恢復 HP 與 MP', fullRestore: true, icon: 'fa-wine-bottle', color: 'text-amber-400' },
+
+    // 【第 1 階：B1F+ 開放】
+    'wp_rust_sword': { id: 'wp_rust_sword', name: '生鏽短劍', type: 'weapon', minFloor: 1, atk: 3, matk: 0, icon: 'fa-khanda', color: 'text-stone-300' },
+    'wp_apprentice_wand': { id: 'wp_apprentice_wand', name: '學徒木杖', type: 'weapon', minFloor: 1, atk: 1, matk: 4, icon: 'fa-wand-sparkles', color: 'text-sky-300' },
+    'ar_cloth': { id: 'ar_cloth', name: '粗布衣', type: 'armor', minFloor: 1, def: 2, icon: 'fa-shirt', color: 'text-stone-300' },
+    'wp_iron_sword': { id: 'wp_iron_sword', name: '精鋼長劍', type: 'weapon', minFloor: 1, atk: 7, matk: 0, icon: 'fa-khanda', color: 'text-amber-300' },
+    'wp_ruby_staff': { id: 'wp_ruby_staff', name: '紅寶石法杖', type: 'weapon', minFloor: 1, atk: 3, matk: 9, icon: 'fa-wand-magic-sparkles', color: 'text-sky-400' },
+    'ar_leather': { id: 'ar_leather', name: '硬化皮甲', type: 'armor', minFloor: 1, def: 5, icon: 'fa-vest', color: 'text-emerald-300' },
+
+    // 【第 2 階：B5F+ 開放】
+    'wp_heavy_axe': { id: 'wp_heavy_axe', name: '重型戰斧', type: 'weapon', minFloor: 5, atk: 13, matk: 0, icon: 'fa-hammer', color: 'text-amber-400' },
+    'wp_rune_staff': { id: 'wp_rune_staff', name: '符文魔導杖', type: 'weapon', minFloor: 5, atk: 5, matk: 16, icon: 'fa-wand-magic-sparkles', color: 'text-indigo-400' },
+    'ar_chainmail': { id: 'ar_chainmail', name: '秘銀鎖子甲', type: 'armor', minFloor: 5, def: 9, icon: 'fa-shirt', color: 'text-emerald-400' },
+
+    // 【第 3 階：B10F+ 開放】
+    'wp_silver_greatsword': { id: 'wp_silver_greatsword', name: '白銀巨劍', type: 'weapon', minFloor: 10, atk: 20, matk: 2, icon: 'fa-khanda', color: 'text-slate-200' },
+    'wp_astral_scepter': { id: 'wp_astral_scepter', name: '星辰權杖', type: 'weapon', minFloor: 10, atk: 8, matk: 24, icon: 'fa-staff-snake', color: 'text-cyan-300' },
+    'ar_knight_plate': { id: 'ar_knight_plate', name: '騎士鋼板甲', type: 'armor', minFloor: 10, def: 14, icon: 'fa-shield-halved', color: 'text-cyan-400' },
+
+    // 【第 4 階：B15F+ 開放】
+    'wp_flame_blade': { id: 'wp_flame_blade', name: '烈焰魔刃', type: 'weapon', minFloor: 15, atk: 29, matk: 8, icon: 'fa-fire', color: 'text-orange-400' },
+    'wp_void_codex': { id: 'wp_void_codex', name: '虛空魔導書', type: 'weapon', minFloor: 15, atk: 10, matk: 34, icon: 'fa-book-skull', color: 'text-purple-400' },
+    'ar_dragon_scale': { id: 'ar_dragon_scale', name: '龍鱗重鎧', type: 'armor', minFloor: 15, def: 20, icon: 'fa-dragon', color: 'text-amber-400' },
+
+    // 【第 5 階：B20F+ 開放】
+    'wp_dragon_slayer': { id: 'wp_dragon_slayer', name: '屠龍聖劍', type: 'weapon', minFloor: 20, atk: 40, matk: 12, icon: 'fa-khanda', color: 'text-rose-400' },
+    'wp_archmage_staff': { id: 'wp_archmage_staff', name: '大賢者法杖', type: 'weapon', minFloor: 20, atk: 14, matk: 46, icon: 'fa-wand-magic-sparkles', color: 'text-fuchsia-400' },
+    'ar_paladin_aegis': { id: 'ar_paladin_aegis', name: '聖殿騎士神鎧', type: 'armor', minFloor: 20, def: 28, icon: 'fa-shield-halved', color: 'text-yellow-300' },
+
+    // 【第 6 階：B25F+ 開放】
+    'wp_abyss_reaver': { id: 'wp_abyss_reaver', name: '深淵弑神巨刃', type: 'weapon', minFloor: 25, atk: 54, matk: 20, icon: 'fa-skull', color: 'text-red-400' },
+    'wp_chaos_orb': { id: 'wp_chaos_orb', name: '混沌元素聖典', type: 'weapon', minFloor: 25, atk: 20, matk: 62, icon: 'fa-orb-obsidian', color: 'text-violet-300' },
+    'ar_celestial_robe': { id: 'ar_celestial_robe', name: '蒼穹星辰神裝', type: 'armor', minFloor: 25, def: 38, icon: 'fa-crown', color: 'text-amber-300' }
+};
+
+let gameState = {
+    floor: 1,
+    cleared100: false,
+    rebornCount: 0,
+    stepsOnFloor: 0,
+    miniBossSpawnedOnFloor: false,
+    player: {
+        x: 2, y: 2,
+        lv: 1, exp: 0, nextExp: 20,
+        hp: 48, maxHp: 48,
+        mp: 24, maxMp: 24,
+        baseAtk: 6,
+        baseMatk: 13,
+        baseDef: 2,
+        weapon: { id: 'wp_rust_sword', name: '生鏽短劍', atk: 3, matk: 0, refine: 0 },
+        armor: { id: 'ar_cloth', name: '粗布衣', def: 2, refine: 0 },
+        inventory: [
+            { id: 'potion_hp', count: 3 },
+            { id: 'potion_mp', count: 2 }
+        ]
+    },
+    map: [],
+    explored: [],
+    monsters: [],
+    inCombat: false,
+    currentEnemy: null,
+    logs: []
+};
+
+let animState = {
+    mode: 'explore',
+    tick: 0,
+    playerShake: 0,
+    enemyShake: 0,
+    flashColor: null,
+    flashAlpha: 0,
+    particles: [],
+    floatingTexts: [],
+    heroDiceFace: 6,
+    enemyDiceFace: 6,
+    isRollingDice: false,
+    moveCooldown: false
+};
+
+/**
+ * ============================================================================
+ * 1.5 舊存檔裝備 ID 自動補齊與精鍊計算引擎
+ * ============================================================================
+ */
+function findItemIdByName(nameStr) {
+    if (!nameStr) return null;
+    // 去除可能殘留的 "+1" 等字尾再反查
+    const cleanName = String(nameStr).replace(/\s*\+\d+$/, '').trim();
+    return Object.keys(ITEM_DB).find(k => ITEM_DB[k].name === cleanName) || null;
+}
+
+function normalizeLegacyEquipIds(stateObj) {
+    if (!stateObj || !stateObj.player) return;
+    const p = stateObj.player;
+
+    if (p.weapon) {
+        if (!p.weapon.id) {
+            p.weapon.id = findItemIdByName(p.weapon.name) || 'wp_rust_sword';
+        }
+        if (typeof p.weapon.refine !== 'number') p.weapon.refine = 0;
+    }
+    if (p.armor) {
+        if (!p.armor.id) {
+            p.armor.id = findItemIdByName(p.armor.name) || 'ar_cloth';
+        }
+        if (typeof p.armor.refine !== 'number') p.armor.refine = 0;
+    }
+    if (Array.isArray(p.inventory)) {
+        p.inventory.forEach(slot => {
+            if (!slot.id && slot.name) {
+                slot.id = findItemIdByName(slot.name);
+            }
+            const info = ITEM_DB[slot.id];
+            if (info && info.type !== 'consumable' && typeof slot.refine !== 'number') {
+                slot.refine = 0;
+            }
+        });
+    }
+}
+
+function isSameEquipment(equipObj, itemKey) {
+    if (!equipObj || !itemKey) return false;
+    const info = ITEM_DB[itemKey];
+    if (!info) return equipObj.id === itemKey;
+    return equipObj.id === itemKey || equipObj.name === info.name;
+}
+
+function getRefineSuccessRate(currentRefine) {
+    if (currentRefine >= MAX_REFINE_LEVEL) return 0;
+    return Math.max(15, 100 - currentRefine * 10);
+}
+
+function getRefineBonusStats(baseInfo, refineLv) {
+    const r = refineLv || 0;
+    if (r <= 0 || !baseInfo) return { atk: 0, matk: 0, def: 0 };
+
+    let totalMult = 0;
+    for (let lv = 1; lv <= r; lv++) {
+        if (lv <= 3) totalMult += 0.20;
+        else if (lv <= 6) totalMult += 0.30;
+        else if (lv <= 9) totalMult += 0.45;
+        else totalMult += 0.65;
+    }
+
+    const bonusAtk = baseInfo.atk > 0 ? Math.max(r, Math.round(baseInfo.atk * totalMult)) : 0;
+    const bonusMatk = baseInfo.matk > 0 ? Math.max(r, Math.round(baseInfo.matk * totalMult)) : 0;
+    const bonusDef = baseInfo.def > 0 ? Math.max(r, Math.round(baseInfo.def * totalMult)) : 0;
+
+    return { atk: bonusAtk, matk: bonusMatk, def: bonusDef };
+}
+
+function getEffectiveEquipStats(equipObj) {
+    if (!equipObj) return { atk: 0, matk: 0, def: 0, refine: 0 };
+    const r = equipObj.refine || 0;
+    const resolvedId = equipObj.id || findItemIdByName(equipObj.name);
+    const baseInfo = ITEM_DB[resolvedId] || equipObj;
+    const bonus = getRefineBonusStats(baseInfo, r);
+    return {
+        atk: (baseInfo.atk || 0) + bonus.atk,
+        matk: (baseInfo.matk || 0) + bonus.matk,
+        def: (baseInfo.def || 0) + bonus.def,
+        refine: r
+    };
+}
+
+function formatEquipName(equipObj) {
+    if (!equipObj) return '';
+    const r = equipObj.refine || 0;
+    return r > 0 ? `${equipObj.name} +${r}` : equipObj.name;
+}
+
+function getItemDescription(info, refineLv = 0) {
+    if (info.type === 'consumable') return info.desc;
+    const eff = getEffectiveEquipStats({ id: info.id, atk: info.atk, matk: info.matk, def: info.def, refine: refineLv });
+    const parts = [];
+    if (eff.atk) parts.push(`物理攻擊 +${eff.atk}`);
+    if (eff.matk) parts.push(`魔法攻擊 +${eff.matk}`);
+    if (eff.def) parts.push(`物理防禦 +${eff.def}`);
+    return parts.join('，');
+}
+
+function getUnlockedEquipKeys(floorNum) {
+    return Object.keys(ITEM_DB).filter(key => {
+        const item = ITEM_DB[key];
+        return (item.type === 'weapon' || item.type === 'armor') && (item.minFloor || 1) <= floorNum;
+    });
+}
+
+function updateTierBadge() {
+    const unlockedCount = getUnlockedEquipKeys(gameState.floor).length;
+    const tier = Math.min(6, Math.floor(gameState.floor / 5) + 1);
+    document.getElementById('gear-tier-badge').textContent = `裝備池：第 ${tier} 階 (${unlockedCount}/21件)`;
+}
+
+/**
+ * ============================================================================
+ * 2. 18x18 迷宮生成與灰色石牆迷霧
+ * ============================================================================
+ */
+function generateFloor(floorNum) {
+    let map = Array.from({ length: MAP_SIZE }, () => Array(MAP_SIZE).fill(TILE.WALL));
+    let explored = Array.from({ length: MAP_SIZE }, () => Array(MAP_SIZE).fill(false));
+
+    let cx = 2, cy = 2;
+    map[cy][cx] = TILE.FLOOR;
+    let floorTiles = [{ x: cx, y: cy }];
+
+    const addFloorTile = (x, y) => {
+        if (x >= 1 && x < MAP_SIZE - 1 && y >= 1 && y < MAP_SIZE - 1 && map[y][x] === TILE.WALL) {
+            map[y][x] = TILE.FLOOR;
+            floorTiles.push({ x, y });
+        }
+    };
+
+    const roomCenters = [{ x: 2, y: 2 }];
+    for (let r = 0; r < 6; r++) {
+        const rx = 2 + Math.floor(Math.random() * (MAP_SIZE - 5));
+        const ry = 2 + Math.floor(Math.random() * (MAP_SIZE - 5));
+        const rw = 2 + Math.floor(Math.random() * 2);
+        const rh = 2 + Math.floor(Math.random() * 2);
+        roomCenters.push({ x: rx, y: ry });
+        for (let dy = 0; dy < rh; dy++) {
+            for (let dx = 0; dx < rw; dx++) {
+                addFloorTile(rx + dx, ry + dy);
+            }
+        }
+    }
+
+    for (let i = 1; i < roomCenters.length; i++) {
+        let prev = roomCenters[i - 1];
+        let curr = roomCenters[i];
+        let tx = prev.x;
+        let ty = prev.y;
+        while (tx !== curr.x) {
+            addFloorTile(tx, ty);
+            tx += tx < curr.x ? 1 : -1;
+        }
+        while (ty !== curr.y) {
+            addFloorTile(tx, ty);
+            ty += ty < curr.y ? 1 : -1;
+        }
+    }
+
+    let dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    let safety = 0;
+    while (floorTiles.length < 152 && safety < 4000) {
+        safety++;
+        if (safety % 30 === 0) {
+            const pick = floorTiles[Math.floor(Math.random() * floorTiles.length)];
+            cx = pick.x;
+            cy = pick.y;
+        }
+        let d = dirs[Math.floor(Math.random() * dirs.length)];
+        let nx = cx + d[0];
+        let ny = cy + d[1];
+        if (nx >= 1 && nx < MAP_SIZE - 1 && ny >= 1 && ny < MAP_SIZE - 1) {
+            cx = nx;
+            cy = ny;
+            addFloorTile(cx, cy);
+        }
+    }
+
+    gameState.player.x = floorTiles[0].x;
+    gameState.player.y = floorTiles[0].y;
+
+    let farthestTile = floorTiles[floorTiles.length - 1];
+    let maxDist = 0;
+    floorTiles.forEach(t => {
+        let dist = Math.abs(t.x - gameState.player.x) + Math.abs(t.y - gameState.player.y);
+        if (dist > maxDist) {
+            maxDist = dist;
+            farthestTile = t;
+        }
+    });
+
+    map[farthestTile.y][farthestTile.x] = (floorNum === 100) ? TILE.BOSS_ALTAR : TILE.STAIRS;
+
+    let availableTiles = floorTiles.filter(t =>
+        !(t.x === gameState.player.x && t.y === gameState.player.y) &&
+        !(t.x === farthestTile.x && t.y === farthestTile.y)
+    );
+    availableTiles.sort(() => Math.random() - 0.5);
+
+    let chestCount = 6 + (floorNum % 4);
+    for (let i = 0; i < chestCount && availableTiles.length > 0; i++) {
+        let t = availableTiles.pop();
+        map[t.y][t.x] = TILE.CHEST_CLOSED;
+    }
+
+    let trapCount = Math.min(9, 5 + Math.floor(floorNum / 12));
+    for (let i = 0; i < trapCount && availableTiles.length > 0; i++) {
+        let t = availableTiles.pop();
+        map[t.y][t.x] = TILE.TRAP_HIDDEN;
+    }
+
+    let monsterCount = Math.min(12, 5 + Math.floor(floorNum / 9));
+    let monsters = [];
+    for (let i = 0; i < monsterCount && availableTiles.length > 0; i++) {
+        let t = availableTiles.pop();
+        let maxIdx = Math.min(MONSTER_TYPES.length - 1, Math.floor((floorNum + 2) / 3));
+        let minIdx = Math.max(0, maxIdx - 2);
+        let mType = MONSTER_TYPES[minIdx + Math.floor(Math.random() * (maxIdx - minIdx + 1))];
+        let scale = 1 + (floorNum - 1) * 0.19;
+
+        monsters.push({
+            x: t.x,
+            y: t.y,
+            typeId: mType.id,
+            name: mType.name,
+            shape: mType.shape,
+            color: mType.color,
+            lv: floorNum,
+            isFinalBoss: false,
+            isMiniBoss: false,
+            hp: Math.round(mType.baseHp * scale),
+            maxHp: Math.round(mType.baseHp * scale),
+            atk: Math.round(mType.baseAtk * scale),
+            def: Math.round(mType.baseDef * scale),
+            exp: Math.round(mType.exp * scale)
+        });
+    }
+
+    if (floorNum === 100) {
+        monsters.push({
+            x: farthestTile.x,
+            y: farthestTile.y,
+            typeId: 'chaos_dragon_emperor',
+            name: '深淵混沌魔龍皇',
+            shape: 'dragon_boss',
+            color: '#c084fc',
+            lv: 100,
+            isFinalBoss: true,
+            isMiniBoss: false,
+            hp: 1320,
+            maxHp: 1320,
+            atk: 128,
+            def: 42,
+            exp: 8000
+        });
+    }
+
+    gameState.map = map;
+    gameState.explored = explored;
+    gameState.monsters = monsters;
+    gameState.inCombat = false;
+    gameState.currentEnemy = null;
+    gameState.stepsOnFloor = 0;
+    gameState.miniBossSpawnedOnFloor = false;
+    animState.mode = 'explore';
+
+    revealFogAroundPlayer();
+}
+
+function revealFogAroundPlayer() {
+    const px = gameState.player.x;
+    const py = gameState.player.y;
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            let nx = px + dx;
+            let ny = py + dy;
+            if (nx >= 0 && nx < MAP_SIZE && ny >= 0 && ny < MAP_SIZE) {
+                gameState.explored[ny][nx] = true;
+            }
+        }
+    }
+
+    const cardinalExtra = [[0, -2], [0, 2], [-2, 0], [2, 0]];
+    cardinalExtra.forEach(([dx, dy]) => {
+        let nx = px + dx;
+        let ny = py + dy;
+        let midX = px + dx / 2;
+        let midY = py + dy / 2;
+        if (nx >= 0 && nx < MAP_SIZE && ny >= 0 && ny < MAP_SIZE && gameState.map[midY][midX] !== TILE.WALL) {
+            gameState.explored[ny][nx] = true;
+        }
+    });
+}
+
+/**
+ * ============================================================================
+ * 3. 敵我雙骰 1D6 命運六面骰判定系統與戰鬥邏輯
+ * ============================================================================
+ */
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getDiceOutcome(point) {
+    switch (point) {
+        case 1:
+            return { point: 1, mult: 0, label: '未命中 (MISS)', short: '1點・未命中', color: 'text-rose-400', hex: '#f87171' };
+        case 2:
+            return { point: 2, mult: 0.6, label: '效果低 (0.6x)', short: '2點・低效 0.6x', color: 'text-amber-400', hex: '#fbbf24' };
+        case 3:
+        case 4:
+            return { point: point, mult: 1.0, label: '正常效果 (1.0x)', short: `${point}點・正常 1.0x`, color: 'text-stone-200', hex: '#e7e5e4' };
+        case 5:
+            return { point: 5, mult: 1.3, label: '強力效果 (1.3x)', short: '5點・強擊 1.3x', color: 'text-sky-300', hex: '#7dd3fc' };
+        case 6:
+        default:
+            return { point: 6, mult: 2.0, label: '暴擊！兩倍效果 (2.0x)', short: '6點・暴擊 2.0x!', color: 'text-amber-300 font-black', hex: '#fde047' };
+    }
+}
+
+function setActionButtonsDisabled(disabled) {
+    const ids = ['btn-attack', 'btn-magic', 'btn-bag', 'btn-stairs', 'btn-up', 'btn-down', 'btn-left', 'btn-right'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+    });
+}
+
+function rollD6Animated(actionLabel, isEnemy = false) {
+    return new Promise(resolve => {
+        animState.isRollingDice = true;
+        setActionButtonsDisabled(true);
+
+        const prefix = isEnemy ? 'enemy' : 'hero';
+        const diceBox = document.getElementById(`${prefix}-dice-box`);
+        const diceCard = document.getElementById(`${prefix}-dice-card`);
+        const badgeEl = document.getElementById(`${prefix}-dice-badge`);
+        const pointEl = document.getElementById(`${prefix}-dice-point`);
+        const effectEl = document.getElementById(`${prefix}-dice-effect`);
+        const targetCanvas = isEnemy ? enemyDiceCanvas : heroDiceCanvas;
+
+        diceBox.classList.add(isEnemy ? 'dice-rolling-enemy' : 'dice-rolling-hero');
+        diceCard.classList.add('ring-2', isEnemy ? 'ring-rose-500' : 'ring-emerald-400');
+
+        badgeEl.innerHTML = isEnemy
+            ? `<i class="fa-solid fa-skull mr-0.5"></i> ${actionLabel}`
+            : `<i class="fa-solid fa-shield-halved mr-0.5"></i> 勇者・${actionLabel}`;
+        pointEl.textContent = '? 點';
+        effectEl.textContent = '命運骰滾動中...';
+        effectEl.className = 'text-[10px] font-bold text-amber-300 truncate w-full';
+
+        let ticks = 0;
+        const maxTicks = 12;
+        const timer = setInterval(() => {
+            ticks++;
+            const randomFace = 1 + Math.floor(Math.random() * 6);
+            if (isEnemy) animState.enemyDiceFace = randomFace;
+            else animState.heroDiceFace = randomFace;
+            drawDiceFace(targetCanvas, randomFace, isEnemy);
+
+            if (ticks >= maxTicks) {
+                clearInterval(timer);
+                const finalPoint = 1 + Math.floor(Math.random() * 6);
+                if (isEnemy) animState.enemyDiceFace = finalPoint;
+                else animState.heroDiceFace = finalPoint;
+                drawDiceFace(targetCanvas, finalPoint, isEnemy);
+
+                diceBox.classList.remove('dice-rolling-hero', 'dice-rolling-enemy');
+                diceCard.classList.remove('ring-2', 'ring-rose-500', 'ring-emerald-400');
+
+                const outcome = getDiceOutcome(finalPoint);
+                pointEl.textContent = `${finalPoint} 點`;
+                effectEl.textContent = outcome.label;
+                effectEl.className = `text-[10px] font-bold truncate w-full ${outcome.color}`;
+
+                setTimeout(() => {
+                    animState.isRollingDice = false;
+                    setActionButtonsDisabled(false);
+                    resolve(outcome);
+                }, 380);
+            }
+        }, 72);
+    });
+}
+
+function resetDualDiceUI() {
+    animState.heroDiceFace = 6;
+    animState.enemyDiceFace = 6;
+    drawDiceFace(heroDiceCanvas, 6, false);
+    drawDiceFace(enemyDiceCanvas, 6, true);
+
+    document.getElementById('hero-dice-badge').innerHTML = '<i class="fa-solid fa-shield-halved mr-0.5"></i> 勇者命運骰';
+    document.getElementById('hero-dice-point').textContent = '-- 點';
+    document.getElementById('hero-dice-effect').textContent = '等待勇者行動';
+    document.getElementById('hero-dice-effect').className = 'text-[10px] font-bold text-stone-300 truncate w-full';
+
+    document.getElementById('enemy-dice-badge').innerHTML = '<i class="fa-solid fa-skull mr-0.5"></i> 敵方命運骰';
+    document.getElementById('enemy-dice-point').textContent = '-- 點';
+    document.getElementById('enemy-dice-effect').textContent = '等待敵方行動';
+    document.getElementById('enemy-dice-effect').className = 'text-[10px] font-bold text-stone-300 truncate w-full';
+}
+
+function getPlayerStats() {
+    const p = gameState.player;
+    const wEff = getEffectiveEquipStats(p.weapon);
+    const aEff = getEffectiveEquipStats(p.armor);
+    return {
+        atk: p.baseAtk + wEff.atk,
+        matk: p.baseMatk + wEff.matk,
+        def: p.baseDef + aEff.def
+    };
+}
+
+function getDamagePreviews() {
+    const stats = getPlayerStats();
+    const enemyDef = (gameState.inCombat && gameState.currentEnemy) ? gameState.currentEnemy.def : 0;
+
+    const physNorm = Math.max(1, stats.atk - enemyDef);
+    const physCrit = Math.max(1, Math.round(stats.atk * 2.0) - enemyDef);
+
+    const magNorm = Math.max(3, Math.round(stats.matk * 1.25));
+    const magCrit = Math.max(3, Math.round(stats.matk * 1.25 * 2.0));
+
+    return { physNorm, physCrit, magNorm, magCrit, enemyDef };
+}
+
+async function handleMove(dx, dy) {
+    if (gameState.player.hp <= 0 || animState.isRollingDice || animState.moveCooldown) return;
+
+    if (gameState.inCombat) {
+        addLog('戰鬥中無法直接移動！請先擊敗眼前的敵人。', 'text-amber-400');
+        animState.playerShake = 8;
+        return;
+    }
+
+    const nx = gameState.player.x + dx;
+    const ny = gameState.player.y + dy;
+
+    if (nx < 0 || nx >= MAP_SIZE || ny < 0 || ny >= MAP_SIZE || gameState.map[ny][nx] === TILE.WALL) {
+        addLog('前方是冰冷堅硬的灰色石牆，無法通行。', 'text-stone-400');
+        animState.playerShake = 6;
+        return;
+    }
+
+    animState.moveCooldown = true;
+    setTimeout(() => { animState.moveCooldown = false; }, 165);
+
+    gameState.player.x = nx;
+    gameState.player.y = ny;
+    gameState.stepsOnFloor++;
+    revealFogAroundPlayer();
+
+    if (gameState.player.mp < gameState.player.maxMp && Math.random() < 0.45) {
+        gameState.player.mp++;
+    }
+
+    if (gameState.map[ny][nx] === TILE.TRAP_HIDDEN) {
+        gameState.map[ny][nx] = TILE.TRAP_REVEALED;
+        animState.mode = 'trap';
+        updateUI();
+        await triggerTrapEvent();
+        updateUI();
+        return;
+    }
+
+    const monster = gameState.monsters.find(m => m.x === nx && m.y === ny);
+    if (monster) {
+        gameState.inCombat = true;
+        gameState.currentEnemy = monster;
+        animState.mode = 'combat';
+        resetDualDiceUI();
+        updateUI();
+
+        if (monster.isFinalBoss) {
+            triggerFlash('rgba(168, 85, 247, 0.45)');
+            animState.playerShake = 15;
+            addLog(`👑 踏上百層王座！終極魔王【${monster.name} (LV.100)】張開混沌雙翼降臨！`, 'text-purple-300 font-black');
+            return;
+        }
+
+        if (Math.random() < 0.30) {
+            addLog(`遭遇了【${monster.name} (LV.${monster.lv})】！怪物發動突襲並擲出敵方命運骰！`, 'text-amber-300 font-bold');
+            const dice = await rollD6Animated(`${monster.name}(偷襲)`, true);
+            if (dice.mult === 0) {
+                spawnFloatingText('MISS!', 75, 80, '#94a3b8');
+                addLog(`🎲 [敵骰 ${dice.short}]【${monster.name}】的偷襲撲了個空，你毫髮無傷！`, 'text-emerald-300');
+            } else {
+                const stats = getPlayerStats();
+                const rawAtk = Math.round(monster.atk * 0.80 * dice.mult);
+                const ambushDmg = Math.max(1, rawAtk - stats.def);
+                gameState.player.hp = Math.max(0, gameState.player.hp - ambushDmg);
+                animState.playerShake = dice.point === 6 ? 18 : 12;
+                triggerFlash('rgba(239, 68, 68, 0.38)');
+                spawnFloatingText(dice.point === 6 ? `暴擊 -${ambushDmg}!` : `-${ambushDmg}`, 75, 80, dice.hex);
+                addLog(`🎲 [敵骰 ${dice.short}]【${monster.name}】偷襲命中，你損失 ${ambushDmg} 點生命！`, 'text-rose-400 font-bold');
+                checkPlayerDeath();
+            }
+        } else {
+            addLog(`前方黑影竄動，遭遇了【${monster.name} (LV.${monster.lv})】！進入戰鬥狀態！`, 'text-amber-300 font-bold');
+        }
+        updateUI();
+        return;
+    }
+
+    if (gameState.map[ny][nx] === TILE.CHEST_CLOSED) {
+        gameState.map[ny][nx] = TILE.CHEST_OPEN;
+        animState.mode = 'chest';
+        spawnParticles(140, 80, '#fbbf24', 28);
+        openChestReward();
+        updateUI();
+        return;
+    }
+
+    if (gameState.map[ny][nx] === TILE.STAIRS) {
+        animState.mode = 'stairs';
+        promptStairsDescend();
+        updateUI();
+        return;
+    }
+
+    if (gameState.floor >= 2 && gameState.floor !== 100 && !gameState.miniBossSpawnedOnFloor && gameState.stepsOnFloor >= 4) {
+        if (Math.random() < 0.003) {
+            spawnHiddenMiniBoss();
+            updateUI();
+            return;
+        }
+    }
+
+    animState.mode = 'explore';
+    if (Math.random() < 0.22) {
+        const flavors = [
+            '你舉著火把謹慎地在寬闊的深淵迷宮中前行...',
+            '遠處石室傳來低沉的嘶吼與金屬摩擦聲...',
+            '腳下的古老石板刻著前代冒險者的警示符文。'
+        ];
+        addLog(flavors[Math.floor(Math.random() * flavors.length)], 'text-stone-400');
+    }
+    updateUI();
+}
+
+async function triggerTrapEvent() {
+    const trapTypes = [
+        { name: '地刺機關陷阱', type: 'spike', desc: '腳下石板突然塌陷，數十根鋼刺彈出！' },
+        { name: '深淵毒霧噴口', type: 'poison', desc: '牆壁縫隙噴出刺鼻的紫綠色瘴氣！' },
+        { name: '噬魔符文陣', type: 'mana', desc: '地面亮起詭異藍光，瘋狂抽取你的魔力！' },
+        { name: '空間錯亂傳送陣', type: 'teleport', desc: '古老傳送符文啟動，空間開始劇烈扭曲！' }
+    ];
+    const trap = trapTypes[Math.floor(Math.random() * trapTypes.length)];
+
+    triggerFlash('rgba(249, 115, 22, 0.35)');
+    spawnParticles(95, 85, '#f97316', 24);
+    addLog(`⚠️ 踩中了隱蔽的【${trap.name}】！${trap.desc} 立即擲勇者命運骰判定閃避！`, 'text-orange-400 font-bold');
+
+    const dice = await rollD6Animated('陷阱閃避', false);
+
+    if (dice.point >= 5) {
+        spawnFloatingText('完美閃避!', 80, 60, '#34d399');
+        addLog(`🎲 [勇者骰 ${dice.point}點] 身手矯健！你一個翻滾完美避開了【${trap.name}】！`, 'text-emerald-300 font-bold');
+        return;
+    }
+
+    if (trap.type === 'teleport') {
+        const safeFloors = [];
+        for (let y = 1; y < MAP_SIZE - 1; y++) {
+            for (let x = 1; x < MAP_SIZE - 1; x++) {
+                if (gameState.map[y][x] === TILE.FLOOR && !gameState.monsters.some(m => m.x === x && m.y === y)) {
+                    safeFloors.push({ x, y });
+                }
+            }
+        }
+        if (safeFloors.length > 0) {
+            const dest = safeFloors[Math.floor(Math.random() * safeFloors.length)];
+            gameState.player.x = dest.x;
+            gameState.player.y = dest.y;
+            revealFogAroundPlayer();
+            spawnFloatingText('空間傳送!', 80, 60, '#c084fc');
+            addLog(`🎲 [勇者骰 ${dice.point}點] 閃避不及，你被傳送到了本層的另一處角落！`, 'text-purple-300 font-bold');
+        }
+    } else if (trap.type === 'mana') {
+        const drainMult = dice.point === 1 ? 1.35 : (dice.point === 2 ? 0.95 : 0.65);
+        const mpLoss = Math.max(2, Math.min(gameState.player.mp, Math.round((4 + gameState.floor * 0.45) * drainMult)));
+        gameState.player.mp = Math.max(0, gameState.player.mp - mpLoss);
+        spawnFloatingText(`-${mpLoss} MP`, 80, 60, '#38bdf8');
+        addLog(`🎲 [勇者骰 ${dice.point}點] 符文吸取了你 ${mpLoss} 點魔力 (MP)！`, 'text-sky-300 font-bold');
+    } else {
+        const dmgMult = dice.point === 1 ? 1.25 : (dice.point === 2 ? 0.90 : 0.60);
+        const baseTrapDmg = 5 + Math.floor(gameState.floor * 0.85);
+        const dmg = Math.max(1, Math.round(baseTrapDmg * dmgMult));
+        gameState.player.hp = Math.max(0, gameState.player.hp - dmg);
+        animState.playerShake = 14;
+        spawnFloatingText(`-${dmg} HP`, 80, 60, '#fb923c');
+        addLog(`🎲 [勇者骰 ${dice.point}點] 受到【${trap.name}】衝擊，損失 ${dmg} 點生命！`, 'text-rose-400 font-bold');
+        checkPlayerDeath();
+    }
+}
+
+function spawnHiddenMiniBoss() {
+    gameState.miniBossSpawnedOnFloor = true;
+    const bossIdx = Math.min(MINI_BOSS_TYPES.length - 1, Math.floor(gameState.floor / 12));
+    const template = MINI_BOSS_TYPES[bossIdx];
+    const scale = 1 + (gameState.floor - 1) * 0.19;
+
+    const miniBoss = {
+        x: gameState.player.x,
+        y: gameState.player.y,
+        typeId: template.id,
+        name: template.name,
+        shape: template.shape,
+        color: template.color,
+        lv: gameState.floor + 2,
+        isFinalBoss: false,
+        isMiniBoss: true,
+        hp: Math.round(template.baseHp * scale),
+        maxHp: Math.round(template.baseHp * scale),
+        atk: Math.round(template.baseAtk * scale),
+        def: Math.round(template.baseDef * scale),
+        exp: Math.round(template.exp * scale)
+    };
+
+    gameState.inCombat = true;
+    gameState.currentEnemy = miniBoss;
+    animState.mode = 'combat';
+    resetDualDiceUI();
+    triggerFlash('rgba(245, 158, 11, 0.42)');
+    animState.playerShake = 16;
+    spawnParticles(180, 80, '#f59e0b', 36);
+
+    addLog(`🔥 【異次元伏擊】空氣劇烈震盪！地圖上未標記的隱藏菁英首領【${miniBoss.name} (LV.${miniBoss.lv})】現身了！`, 'text-amber-300 font-black');
+}
+
+function handleStairsAction() {
+    if (gameState.inCombat || animState.isRollingDice) {
+        addLog('戰鬥或擲骰中無法使用樓梯！', 'text-amber-400');
+        return;
+    }
+    const tile = gameState.map[gameState.player.y][gameState.player.x];
+    if (tile === TILE.STAIRS) {
+        promptStairsDescend();
+    } else if (tile === TILE.BOSS_ALTAR && gameState.cleared100) {
+        promptStairsDescend();
+    } else {
+        addLog('你目前沒有站在樓梯上，請先在地圖上尋找青色階梯。', 'text-stone-400');
+    }
+}
+
+function promptStairsDescend() {
+    const nextFloor = gameState.floor + 1;
+    const isNext100 = nextFloor === 100;
+    showDialog(
+        isNext100 ? '⚠️ 警告：即將踏入第 100 層魔王領域' : '發現深淵階梯',
+        isNext100
+            ? '前方就是地下 100 層【深淵混沌魔龍皇】的王座！建議先確認狀態與藥水充足，是否立即前往決戰？'
+            : `你站在通往地下 ${nextFloor} 層的螺旋石梯上，是否要繼續深入？`,
+        [
+            { text: '留在本層', class: 'rpg-btn px-4 py-1.5 rounded-lg text-sm', onClick: () => { animState.mode = 'explore'; } },
+            { text: isNext100 ? '決戰第 100 層！' : `前往 B${nextFloor}F`, class: 'rpg-btn rpg-btn-magic px-4 py-1.5 rounded-lg text-sm font-bold', onClick: descendFloor }
+        ]
+    );
+}
+
+function descendFloor() {
+    const prevUnlockedCount = getUnlockedEquipKeys(gameState.floor).length;
+    gameState.floor++;
+    const newUnlockedCount = getUnlockedEquipKeys(gameState.floor).length;
+
+    gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + 12);
+    gameState.player.mp = Math.min(gameState.player.maxMp, gameState.player.mp + 10);
+    generateFloor(gameState.floor);
+    resetDualDiceUI();
+
+    if (newUnlockedCount > prevUnlockedCount) {
+        addLog(`🔓 【新裝備解鎖】已深入第 ${gameState.floor} 層，寶箱與戰利品開放更高階神兵防具（目前解鎖 ${newUnlockedCount}/21 件）！`, 'text-amber-300 font-bold');
+    }
+
+    if (gameState.floor === 100) {
+        triggerFlash('rgba(168, 85, 247, 0.45)');
+        addLog('🚨 【魔王警報】已抵達地下 100 層 (B100F)！地圖上的紫金王冠即為最終魔王所在！', 'text-purple-300 font-black');
+    } else if (gameState.floor === 101) {
+        addLog('🌌 歡迎來到【無盡深淵模式 B101F+】！這裡沒有盡頭，唯有不斷突破極限！', 'text-cyan-300 font-bold');
+    } else {
+        addLog(`踏入【地下 ${gameState.floor} 層 (B${gameState.floor}F)】，生命恢復 12 點、魔力恢復 10 點！`, 'text-cyan-300 font-bold');
+    }
+    updateUI();
+}
+
+/**
+ * ============================================================================
+ * 3.5 寶箱與怪物掉落裝備引擎（支援新舊存檔自動精鍊強化）
+ * ============================================================================
+ */
+function executeEquipRefineAttempt(targetEquip, info, locationName, triggerLabel) {
+    const p = gameState.player;
+    const curRefine = targetEquip.refine || 0;
+    if (curRefine >= MAX_REFINE_LEVEL) {
+        p.hp = Math.min(p.maxHp, p.hp + 20);
+        p.mp = Math.min(p.maxMp, p.mp + 15);
+        addLog(`${triggerLabel}【${info.name}】，但${locationName}裝備已達最高精鍊 +${MAX_REFINE_LEVEL}，轉化為靈力恢復生命與魔力！`, 'text-amber-300');
+        return;
+    }
+
+    const rate = getRefineSuccessRate(curRefine);
+    const roll = Math.random() * 100;
+
+    if (roll < rate) {
+        targetEquip.refine = curRefine + 1;
+        const newDesc = getItemDescription(info, targetEquip.refine);
+        spawnParticles(130, 75, '#fde047', 34);
+        spawnFloatingText(`精鍊 +${targetEquip.refine} 成功!`, 125, 52, '#fde047');
+        addLog(
+            `🔨 ${triggerLabel}【${info.name}】進行精鍊（成功率 ${rate}%）➔ ✨ 精鍊成功！${locationName}【${info.name}】提升至 +${targetEquip.refine}（${newDesc}）！`,
+            'text-amber-300 font-black'
+        );
+    } else {
+        spawnFloatingText(`精鍊失敗 (+${curRefine})`, 125, 58, '#94a3b8');
+        addLog(
+            `🔨 ${triggerLabel}【${info.name}】進行精鍊（成功率 ${rate}%）➔ 💥 爐火失控精鍊失敗！素材消耗，${locationName}裝備維持 +${curRefine}。`,
+            'text-stone-400 font-bold'
+        );
+    }
+}
+
+function acquireEquipmentOrRefine(itemKey, sourceLabel = '寶箱') {
+    const info = ITEM_DB[itemKey];
+    if (!info) return;
+
+    const p = gameState.player;
+    let targetEquip = null;
+    let locationName = '';
+
+    // 1. 優先檢查是否與身上「已裝備」的武器或防具相同（同時比對 id 與 name，相容舊存檔）
+    if (info.type === 'weapon' && isSameEquipment(p.weapon, itemKey)) {
+        if (!p.weapon.id) p.weapon.id = itemKey;
+        targetEquip = p.weapon;
+        locationName = '手持';
+    } else if (info.type === 'armor' && isSameEquipment(p.armor, itemKey)) {
+        if (!p.armor.id) p.armor.id = itemKey;
+        targetEquip = p.armor;
+        locationName = '身穿';
+    } else {
+        // 2. 其次檢查「行囊中」是否已有相同裝備（若有複數件則挑選精鍊最高的那一件進行強化）
+        const matchingSlots = p.inventory.filter(s => s.id === itemKey || s.name === info.name);
+        if (matchingSlots.length > 0) {
+            matchingSlots.sort((a, b) => (b.refine || 0) - (a.refine || 0));
+            targetEquip = matchingSlots[0];
+            if (!targetEquip.id) targetEquip.id = itemKey;
+            if (typeof targetEquip.refine !== 'number') targetEquip.refine = 0;
+            locationName = '行囊中的';
+        }
+    }
+
+    // 若無重複裝備，直接作為獨立裝備欄位放入行囊
+    if (!targetEquip) {
+        addItemToBag(itemKey, 1, 0);
+        addLog(`${sourceLabel}獲得新裝備【${info.name}】！`, 'text-amber-300 font-bold');
+        return;
+    }
+
+    executeEquipRefineAttempt(targetEquip, info, locationName, '獲得重複');
+}
+
+function openChestReward() {
+    const unlockedEquips = getUnlockedEquipKeys(gameState.floor);
+    const roll = Math.random();
+
+    if (roll < 0.45) {
+        const consumables = ['potion_hp', 'potion_hp', 'potion_mp', 'elixir'];
+        const cKey = consumables[Math.floor(Math.random() * consumables.length)];
+        const info = ITEM_DB[cKey];
+        addItemToBag(cKey, 1);
+        addLog(`開啟了古老寶箱，獲得補給品【${info.name}】！`, 'text-emerald-300 font-bold');
+    } else {
+        const eqKey = unlockedEquips[Math.floor(Math.random() * unlockedEquips.length)];
+        acquireEquipmentOrRefine(eqKey, '開啟寶箱');
+    }
+}
+
+function addItemToBag(itemId, count = 1, refine = 0) {
+    const info = ITEM_DB[itemId];
+    if (!info) return;
+
+    if (info.type === 'consumable') {
+        const existing = gameState.player.inventory.find(i => i.id === itemId);
+        if (existing) existing.count += count;
+        else gameState.player.inventory.push({ id: itemId, count });
+    } else {
+        gameState.player.inventory.push({ id: itemId, count: 1, refine: refine || 0 });
+    }
+}
+
+// 物理攻擊
+async function handleAttack() {
+    if (gameState.player.hp <= 0 || animState.isRollingDice) return;
+    if (!gameState.inCombat || !gameState.currentEnemy) {
+        addLog('你揮舞武器劃破空氣，周圍沒有敵人。', 'text-stone-400');
+        spawnParticles(120, 80, '#e2e8f0', 8);
+        return;
+    }
+
+    const enemy = gameState.currentEnemy;
+    const stats = getPlayerStats();
+    const dice = await rollD6Animated('物理攻擊', false);
+
+    if (dice.mult === 0) {
+        spawnFloatingText('MISS!', 190, 60, '#94a3b8');
+        addLog(`🎲 [勇者骰 ${dice.short}] 你揮劍斬向【${enemy.name}】，但動作被識破完全未命中！`, 'text-stone-400 font-bold');
+    } else {
+        const variance = 0.92 + Math.random() * 0.16;
+        const scaledAtk = Math.round(stats.atk * variance * dice.mult);
+        const dmg = Math.max(1, scaledAtk - enemy.def);
+
+        enemy.hp = Math.max(0, enemy.hp - dmg);
+        animState.enemyShake = dice.point >= 5 ? 18 : 12;
+        spawnParticles(190, 80, dice.point === 6 ? '#fbbf24' : '#f87171', dice.point === 6 ? 28 : 14);
+        spawnFloatingText(dice.point === 6 ? `暴擊 -${dmg}!` : `-${dmg}`, 190, 56, dice.hex);
+
+        addLog(
+            `🎲 [勇者骰 ${dice.short}] 你揮劍斬擊【${enemy.name}】，造成 ${dmg} 點物理傷害！`,
+            dice.point === 6 ? 'text-amber-300 font-bold' : (dice.point === 2 ? 'text-amber-500' : 'text-stone-200')
+        );
+    }
+
+    updateUI();
+    if (enemy.hp <= 0) {
+        handleEnemyDefeated(enemy);
+        updateUI();
+    } else {
+        await sleep(320);
+        await enemyTurn(enemy);
+        updateUI();
+    }
+}
+
+// 奧術火球魔法 / 治癒微光
+async function handleMagic() {
+    if (gameState.player.hp <= 0 || animState.isRollingDice) return;
+
+    if (gameState.player.mp < FIREBALL_MP_COST) {
+        addLog(`魔力不足！施放【奧術火球】需要 ${FIREBALL_MP_COST} 點 MP。`, 'text-sky-400');
+        return;
+    }
+
+    if (!gameState.inCombat || !gameState.currentEnemy) {
+        gameState.player.mp -= FIREBALL_MP_COST;
+        const dice = await rollD6Animated('治癒微光', false);
+        if (dice.mult === 0) {
+            spawnFloatingText('詠唱失敗!', 85, 60, '#94a3b8');
+            addLog(`🎲 [勇者骰 ${dice.short}] 魔力迴路失衡，【治癒微光】詠唱失敗！`, 'text-stone-400');
+        } else {
+            const heal = Math.max(3, Math.round(getPlayerStats().matk * 1.15 * dice.mult));
+            gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + heal);
+            spawnParticles(85, 80, dice.point === 6 ? '#fde047' : '#34d399', 22);
+            spawnFloatingText(dice.point === 6 ? `暴擊 +${heal} HP!` : `+${heal} HP`, 85, 56, dice.hex);
+            addLog(`🎲 [勇者骰 ${dice.short}] 施展【治癒微光】，消耗 ${FIREBALL_MP_COST} MP 恢復 ${heal} 點生命！`, 'text-emerald-400');
+        }
+        updateUI();
+        return;
+    }
+
+    gameState.player.mp -= FIREBALL_MP_COST;
+    const enemy = gameState.currentEnemy;
+    const stats = getPlayerStats();
+    const dice = await rollD6Animated('奧術火球', false);
+
+    if (dice.mult === 0) {
+        spawnFloatingText('火球偏離!', 190, 60, '#94a3b8');
+        addLog(`🎲 [勇者骰 ${dice.short}] 你消耗 ${FIREBALL_MP_COST} MP 射出【奧術火球】，卻擦過【${enemy.name}】身旁未命中！`, 'text-stone-400 font-bold');
+    } else {
+        const variance = 0.94 + Math.random() * 0.14;
+        const dmg = Math.max(3, Math.round(stats.matk * 1.25 * variance * dice.mult));
+
+        enemy.hp = Math.max(0, enemy.hp - dmg);
+        animState.enemyShake = 18;
+        triggerFlash('rgba(56, 189, 248, 0.28)');
+        spawnParticles(190, 80, dice.point === 6 ? '#fde047' : '#38bdf8', dice.point === 6 ? 32 : 24);
+        spawnFloatingText(dice.point === 6 ? `🔥暴擊 -${dmg}!` : `🔥 -${dmg}`, 190, 54, dice.hex);
+
+        addLog(`🎲 [勇者骰 ${dice.short}] 釋放【奧術火球】對【${enemy.name}】造成 ${dmg} 點貫穿傷害！`, 'text-sky-300 font-bold');
+    }
+
+    updateUI();
+    if (enemy.hp <= 0) {
+        handleEnemyDefeated(enemy);
+        updateUI();
+    } else {
+        await sleep(320);
+        await enemyTurn(enemy);
+        updateUI();
+    }
+}
+
+// 敵方回合
+async function enemyTurn(enemy) {
+    const stats = getPlayerStats();
+    const dice = await rollD6Animated(`${enemy.name}`, true);
+
+    if (dice.mult === 0) {
+        spawnFloatingText('閃避成功!', 75, 60, '#34d399');
+        addLog(`🎲 [敵骰 ${dice.short}]【${enemy.name}】的攻擊被你靈巧閃過，未受到傷害！`, 'text-emerald-300');
+        return;
+    }
+
+    const variance = 0.92 + Math.random() * 0.16;
+    const scaledEnemyAtk = Math.round(enemy.atk * variance * dice.mult);
+    const dmg = Math.max(1, scaledEnemyAtk - stats.def);
+
+    gameState.player.hp = Math.max(0, gameState.player.hp - dmg);
+    animState.playerShake = dice.point === 6 ? 18 : 12;
+    triggerFlash(dice.point === 6 ? 'rgba(239, 68, 68, 0.48)' : 'rgba(239, 68, 68, 0.28)');
+    spawnFloatingText(dice.point === 6 ? `痛擊 -${dmg}!` : `-${dmg}`, 75, 60, dice.hex);
+
+    addLog(
+        `🎲 [敵骰 ${dice.short}]【${enemy.name}】發動反擊！你受到 ${dmg} 點傷害！`,
+        dice.point === 6 ? 'text-rose-300 font-black' : 'text-rose-400'
+    );
+    checkPlayerDeath();
+}
+
+function handleEnemyDefeated(enemy) {
+    addLog(`成功擊敗了【${enemy.name}】！獲得 ${enemy.exp} 點經驗值！`, 'text-emerald-400 font-bold');
+
+    if (enemy.isMiniBoss) {
+        const unlockedEquips = getUnlockedEquipKeys(gameState.floor + 5);
+        const dropKey = unlockedEquips[Math.floor(Math.random() * unlockedEquips.length)];
+        acquireEquipmentOrRefine(dropKey, '🏆 菁英首領戰利品');
+    } else if (!enemy.isFinalBoss) {
+        if (Math.random() < 0.15) {
+            const unlockedEquips = getUnlockedEquipKeys(gameState.floor);
+            const dropKey = unlockedEquips[Math.floor(Math.random() * unlockedEquips.length)];
+            acquireEquipmentOrRefine(dropKey, '⚔️ 怪物戰利品掉落');
+        }
+    }
+
+    gameState.monsters = gameState.monsters.filter(m => m !== enemy);
+    gameState.inCombat = false;
+    gameState.currentEnemy = null;
+    animState.mode = 'explore';
+
+    const p = gameState.player;
+    p.exp += enemy.exp;
+    while (p.exp >= p.nextExp) {
+        p.exp -= p.nextExp;
+        p.lv++;
+        p.nextExp = Math.round(p.nextExp * 1.35);
+        p.maxHp += 13;
+        p.hp = p.maxHp;
+        p.maxMp += 6;
+        p.mp = p.maxMp;
+        p.baseAtk += 2;
+        p.baseMatk += 3;
+        p.baseDef += 1;
+        spawnParticles(90, 80, '#fbbf24', 32);
+        addLog(`✨ 升級了！達到 LV.${p.lv}！全屬性提升且生命魔力完全恢復！`, 'text-amber-300 font-bold');
+    }
+
+    if (enemy.isFinalBoss) {
+        gameState.cleared100 = true;
+        gameState.map[gameState.player.y][gameState.player.x] = TILE.STAIRS;
+        spawnParticles(180, 80, '#c084fc', 55);
+        triggerFlash('rgba(251, 191, 36, 0.45)');
+        addLog('👑 史詩偉業！第 100 層【深淵混沌魔龍皇】已倒下！無盡深淵之門正式開啟！', 'text-amber-300 font-black');
+        openVictory100Modal();
+    }
+}
+
+/**
+ * ============================================================================
+ * 3.8 陣亡判定與「超過第 3 層可繼承等級轉生」系統
+ * ============================================================================
+ */
+function checkPlayerDeath() {
+    if (gameState.player.hp <= 0) {
+        animState.mode = 'gameover';
+        addLog('💀 你的意識逐漸模糊，倒在了深淵地城之中...', 'text-rose-500 font-bold');
+
+        const currentFloor = gameState.floor;
+        const currentLv = gameState.player.lv;
+
+        if (currentFloor >= 3) {
+            showDialog(
+                '冒險者陣亡・英靈轉生覺醒',
+                `你在地下 ${currentFloor} 層力竭倒下（最終等級 LV.${currentLv}）。\n\n` +
+                `✨【轉生繼承規則】✨\n` +
+                `由於你已突破地下 3 層考驗，可選擇「繼承等級 LV.${currentLv}」與對應的基礎成長屬性（HP / MP / ATK / MAG / DEF），從地下 1 層重新出發！\n` +
+                `（※ 行囊道具與裝備精鍊將重置，或亦可讀取先前的 5 碼雲端存檔）`,
+                [
+                    {
+                        text: `繼承 LV.${currentLv} 轉生重來`,
+                        class: 'rpg-btn rpg-btn-emerald px-4 py-2 rounded-lg text-sm font-black',
+                        onClick: () => initNewGame(true)
+                    },
+                    {
+                        text: '從 LV.1 完全重來',
+                        class: 'rpg-btn rpg-btn-danger px-3.5 py-2 rounded-lg text-xs font-bold',
+                        onClick: () => initNewGame(false)
+                    }
+                ]
+            );
+        } else {
+            showDialog(
+                '冒險者陣亡',
+                `你在地下 ${currentFloor} 層力竭倒下（最終等級 LV.${currentLv}）。\n（※ 深入至地下 3 層或更深處陣亡時，將可解鎖「繼承等級轉生」功能！）`,
+                [{ text: '重新開始', class: 'rpg-btn rpg-btn-danger px-4 py-1.5 rounded-lg text-sm font-bold', onClick: () => initNewGame(false) }]
+            );
+        }
+    }
+}
+
+/**
+ * ============================================================================
+ * 4. 第 100 層通關留名與「百層制霸勇者殿堂」GAS 讀寫系統
+ * ============================================================================
+ */
+const DEFAULT_HOF_LIST = [
+    { name: '聖光騎士・羅蘭', lv: 34, atk: 58, matk: 45, def: 36, date: '2026-10-12' },
+    { name: '星辰大法師・梅林', lv: 32, atk: 38, matk: 76, def: 28, date: '2026-11-03' }
+];
+const LOCAL_HOF_KEY = 'dnd_dungeon_local_hof';
+
+function openVictory100Modal() {
+    const p = gameState.player;
+    const stats = getPlayerStats();
+    document.getElementById('vic-lv').textContent = `LV. ${p.lv}`;
+    document.getElementById('vic-stats').textContent = `ATK ${stats.atk} / MAG ${stats.matk} / DEF ${stats.def}`;
+    document.getElementById('hero-name-input').value = '';
+    document.getElementById('victory-100-modal').classList.remove('hidden');
+}
+
+async function submitHallOfFame() {
+    const rawName = document.getElementById('hero-name-input').value.trim();
+    const heroName = rawName || '無名深淵勇者';
+    const p = gameState.player;
+    const stats = getPlayerStats();
+    const today = new Date().toISOString().slice(0, 10);
+
+    const record = {
+        name: heroName,
+        lv: p.lv,
+        atk: stats.atk,
+        matk: stats.matk,
+        def: stats.def,
+        date: today
+    };
+
+    const btn = document.getElementById('btn-submit-hof');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在寫入勇者殿堂...';
+
+    const gasUrl = getGasUrl();
+    try {
+        const localHof = JSON.parse(localStorage.getItem(LOCAL_HOF_KEY) || '[]');
+        localHof.unshift(record);
+        localStorage.setItem(LOCAL_HOF_KEY, JSON.stringify(localHof));
+
+        if (gasUrl) {
+            await fetch(gasUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'add_hof', record: record })
+            });
+        }
+
+        document.getElementById('victory-100-modal').classList.add('hidden');
+        addLog(`🏆 勇者【${heroName}】的英名已永久刻入左側「百層制霸勇者殿堂」！`, 'text-amber-300 font-bold');
+        await fetchHallOfFame();
+
+        showDialog(
+            '無盡深淵模式已開啟！',
+            `勇者【${heroName}】的紀錄已成功保存！\n現在腳下的王冠祭壇已化為通往「地下 101 層」的無盡階梯，準備好挑戰更深層的未知領域了嗎？`,
+            [
+                { text: '留在 100 層', class: 'rpg-btn px-4 py-1.5 rounded-lg text-sm' },
+                { text: '踏入 B101F 無盡模式', class: 'rpg-btn rpg-btn-royal px-4 py-1.5 rounded-lg text-sm font-bold', onClick: descendFloor }
+            ]
+        );
+    } catch (err) {
+        console.error(err);
+        document.getElementById('victory-100-modal').classList.add('hidden');
+        renderHallOfFameList(getLocalMergedHof());
+        addLog(`⚠️ 雲端同步異常，但已將【${heroName}】記錄於本地勇者殿堂。`, 'text-amber-400');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-feather-pointed"></i> 刻入勇者殿堂並進入 B101F 無盡模式';
+        updateUI();
+    }
+}
+
+function getLocalMergedHof() {
+    const localHof = JSON.parse(localStorage.getItem(LOCAL_HOF_KEY) || '[]');
+    return [...localHof, ...DEFAULT_HOF_LIST];
+}
+
+async function fetchHallOfFame() {
+    const refreshBtn = document.getElementById('btn-refresh-hof');
+    if (refreshBtn) refreshBtn.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i>';
+
+    const gasUrl = getGasUrl();
+    const sourceLabel = document.getElementById('hof-source-label');
+
+    try {
+        if (gasUrl) {
+            const res = await fetch(`${gasUrl}?action=get_hof`);
+            const data = await res.json();
+            if (data.status === 'ok' && Array.isArray(data.list)) {
+                sourceLabel.innerHTML = '<i class="fa-solid fa-cloud text-emerald-400 mr-1"></i>GAS 雲端同步';
+                renderHallOfFameList(data.list.length > 0 ? data.list : DEFAULT_HOF_LIST);
+                return;
+            }
+        }
+        sourceLabel.innerHTML = '<i class="fa-solid fa-database text-amber-400 mr-1"></i>本地/預設殿堂';
+        renderHallOfFameList(getLocalMergedHof());
+    } catch (err) {
+        console.warn('讀取 GAS 勇者榜失敗，改用本地名單:', err);
+        sourceLabel.innerHTML = '<i class="fa-solid fa-database text-amber-400 mr-1"></i>本地備援殿堂';
+        renderHallOfFameList(getLocalMergedHof());
+    } finally {
+        if (refreshBtn) refreshBtn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+    }
+}
+
+function renderHallOfFameList(list) {
+    const container = document.getElementById('hof-list');
+    const countLabel = document.getElementById('hof-count-label');
+    container.innerHTML = '';
+    countLabel.textContent = `共 ${list.length} 位勇者`;
+
+    if (list.length === 0) {
+        container.innerHTML = '<div class="text-center text-stone-500 text-xs py-6">尚無勇者征服第 100 層...</div>';
+        return;
+    }
+
+    list.forEach((hero, index) => {
+        const rankColors = [
+            'border-amber-400/80 bg-amber-950/35 text-amber-300',
+            'border-slate-400/60 bg-slate-900/50 text-slate-200',
+            'border-amber-700/60 bg-orange-950/30 text-amber-500'
+        ];
+        const cardStyle = rankColors[index] || 'border-stone-800 bg-stone-950/80 text-stone-300';
+        const crownIcon = index === 0 ? 'fa-crown text-amber-400' : (index < 3 ? 'fa-medal text-amber-500' : 'fa-shield text-stone-500');
+
+        const card = document.createElement('div');
+        card.className = `p-2.5 rounded-lg border ${cardStyle} transition-all`;
+        card.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center gap-1.5 font-bold text-xs truncate">
+                    <i class="fa-solid ${crownIcon}"></i>
+                    <span class="truncate">${escapeHtml(hero.name)}</span>
+                </div>
+                <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-black/50 text-amber-300 shrink-0">LV.${hero.lv}</span>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-stone-400 font-mono-code">
+                <span>ATK:${hero.atk} MAG:${hero.matk}</span>
+                <span>${escapeHtml(hero.date || '')}</span>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+}
+
+function warpToFloor99Test() {
+    closeGasModal();
+    const p = gameState.player;
+    p.lv = Math.max(p.lv, 36);
+    p.maxHp = Math.max(p.maxHp, 520);
+    p.hp = p.maxHp;
+    p.maxMp = Math.max(p.maxMp, 250);
+    p.mp = p.maxMp;
+    p.baseAtk = Math.max(p.baseAtk, 78);
+    p.baseMatk = Math.max(p.baseMatk, 98);
+    p.baseDef = Math.max(p.baseDef, 38);
+    p.weapon = { id: 'wp_abyss_reaver', name: '深淵弑神巨刃', atk: 54, matk: 20, refine: 5 };
+    p.armor = { id: 'ar_celestial_robe', name: '蒼穹星辰神裝', def: 38, refine: 5 };
+    addItemToBag('elixir', 4);
+
+    gameState.floor = 99;
+    generateFloor(99);
+
+    for (let y = 0; y < MAP_SIZE; y++) {
+        for (let x = 0; x < MAP_SIZE; x++) {
+            if (gameState.map[y][x] === TILE.STAIRS) {
+                gameState.player.x = x;
+                gameState.player.y = y;
+                revealFogAroundPlayer();
+            }
+        }
+    }
+
+    addLog('⚡ 時空傳送啟動！已強化戰力並傳送至【地下 99 層】階梯！', 'text-purple-300 font-bold');
+    updateUI();
+    promptStairsDescend();
+}
+
+/**
+ * ============================================================================
+ * 5. 物品欄系統（支援同款裝備顯示「精鍊」按鈕與換裝完整保留）
+ * ============================================================================
+ */
+function openInventoryModal() {
+    if (animState.isRollingDice) return;
+    normalizeLegacyEquipIds(gameState);
+    renderInventory();
+    document.getElementById('inventory-modal').classList.remove('hidden');
+}
+
+function closeInventoryModal() {
+    document.getElementById('inventory-modal').classList.add('hidden');
+}
+
+function renderInventory() {
+    const p = gameState.player;
+    const wEff = getEffectiveEquipStats(p.weapon);
+    const aEff = getEffectiveEquipStats(p.armor);
+
+    document.getElementById('equip-weapon').textContent =
+        `${formatEquipName(p.weapon)} (+${wEff.atk} ATK${wEff.matk ? `, +${wEff.matk} MAG` : ''})`;
+    document.getElementById('equip-weapon-refine').textContent =
+        wEff.refine >= MAX_REFINE_LEVEL
+            ? `已達最高精鍊 +${MAX_REFINE_LEVEL}`
+            : `精鍊 +${wEff.refine} (重複武器精鍊成功率 ${getRefineSuccessRate(wEff.refine)}%)`;
+
+    document.getElementById('equip-armor').textContent =
+        `${formatEquipName(p.armor)} (+${aEff.def} DEF)`;
+    document.getElementById('equip-armor-refine').textContent =
+        aEff.refine >= MAX_REFINE_LEVEL
+            ? `已達最高精鍊 +${MAX_REFINE_LEVEL}`
+            : `精鍊 +${aEff.refine} (重複防具精鍊成功率 ${getRefineSuccessRate(aEff.refine)}%)`;
+
+    const listEl = document.getElementById('inventory-list');
+    listEl.innerHTML = '';
+
+    if (p.inventory.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-stone-500 text-xs py-6">行囊空空如也...</div>';
+        return;
+    }
+
+    p.inventory.forEach((slot, idx) => {
+        const resolvedId = slot.id || findItemIdByName(slot.name);
+        const info = ITEM_DB[resolvedId];
+        if (!info) return;
+
+        const rLv = slot.refine || 0;
+        const displayName = (info.type !== 'consumable' && rLv > 0) ? `${info.name} +${rLv}` : info.name;
+        const displayDesc = getItemDescription(info, rLv);
+        const countBadge = info.type === 'consumable'
+            ? `<span class="text-amber-400">x${slot.count}</span>`
+            : (rLv > 0 ? `<span class="text-amber-300 font-mono-code">[+${rLv}]</span>` : '');
+
+        // 檢查是否與身上穿戴的裝備同款
+        const isSameAsEquipped =
+            (info.type === 'weapon' && isSameEquipment(p.weapon, info.id)) ||
+            (info.type === 'armor' && isSameEquipment(p.armor, info.id));
+
+        let btnLabel = '裝備';
+        let btnClass = 'rpg-btn';
+        let subHint = displayDesc;
+
+        if (info.type === 'consumable') {
+            btnLabel = '使用';
+        } else if (isSameAsEquipped) {
+            const curRefine = info.type === 'weapon' ? wEff.refine : aEff.refine;
+            btnLabel = '精鍊';
+            btnClass = 'rpg-btn rpg-btn-refine';
+            subHint = curRefine >= MAX_REFINE_LEVEL
+                ? `身上裝備已滿級 +${MAX_REFINE_LEVEL}（點擊轉化靈力）`
+                : `消耗此件精鍊身上裝備（成功率 ${getRefineSuccessRate(curRefine)}%）`;
+        }
+
+        const row = document.createElement('div');
+        row.className = `flex items-center justify-between bg-stone-900/90 border ${isSameAsEquipped ? 'border-amber-600/70' : 'border-stone-800'} p-2 rounded-lg`;
+        row.innerHTML = `
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded bg-stone-950 border border-stone-700 flex items-center justify-center shrink-0 ${info.color}">
+                    <i class="fa-solid ${info.icon}"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-stone-200 truncate">${displayName} ${countBadge}</div>
+                    <div class="text-[11px] ${isSameAsEquipped ? 'text-amber-300/90' : 'text-stone-400'} truncate">${subHint}</div>
+                </div>
+            </div>
+            <button onclick="useInventoryItem(${idx})" class="${btnClass} px-2.5 py-1 rounded text-xs font-bold shrink-0 ml-2">
+                ${btnLabel}
+            </button>
+        `;
+        listEl.appendChild(row);
+    });
+}
+
+function useInventoryItem(index) {
+    const p = gameState.player;
+    const slot = p.inventory[index];
+    if (!slot) return;
+    const resolvedId = slot.id || findItemIdByName(slot.name);
+    const info = ITEM_DB[resolvedId];
+    if (!info) return;
+    const slotRefine = slot.refine || 0;
+
+    if (info.type === 'consumable') {
+        if (info.healHp) {
+            p.hp = Math.min(p.maxHp, p.hp + info.healHp);
+            addLog(`飲用了【${info.name}】，恢復 ${info.healHp} 點生命！`, 'text-emerald-400');
+            spawnFloatingText(`+${info.healHp} HP`, 80, 65, '#34d399');
+        }
+        if (info.healMp) {
+            p.mp = Math.min(p.maxMp, p.mp + info.healMp);
+            addLog(`飲用了【${info.name}】，恢復 ${info.healMp} 點魔力！`, 'text-sky-400');
+            spawnFloatingText(`+${info.healMp} MP`, 80, 65, '#38bdf8');
+        }
+        if (info.fullRestore) {
+            p.hp = p.maxHp;
+            p.mp = p.maxMp;
+            addLog(`飲用了【${info.name}】，生命與魔力完全恢復！`, 'text-amber-300 font-bold');
+            spawnFloatingText(`MAX RESTORE!`, 80, 65, '#fbbf24');
+        }
+        slot.count--;
+        if (slot.count <= 0) p.inventory.splice(index, 1);
+    } else if (info.type === 'weapon') {
+        // 若行囊裝備與身上手持武器同款 -> 執行消耗精鍊！
+        if (isSameEquipment(p.weapon, info.id)) {
+            if (!p.weapon.id) p.weapon.id = info.id;
+            p.inventory.splice(index, 1);
+            executeEquipRefineAttempt(p.weapon, info, '手持', '消耗行囊');
+        } else {
+            // 不同款武器 -> 正常換裝，換下來的舊武器完整保留在行囊中
+            const prevWeaponId = p.weapon.id || findItemIdByName(p.weapon.name) || 'wp_rust_sword';
+            const prevWeaponRefine = p.weapon.refine || 0;
+            const prevWeaponFullName = formatEquipName(p.weapon);
+
+            p.weapon = {
+                id: info.id,
+                name: info.name,
+                atk: info.atk || 0,
+                matk: info.matk || 0,
+                refine: slotRefine
+            };
+
+            p.inventory.splice(index, 1);
+            addItemToBag(prevWeaponId, 1, prevWeaponRefine);
+
+            addLog(
+                `裝備了武器【${formatEquipName(p.weapon)}】（${getItemDescription(info, slotRefine)}），換下的【${prevWeaponFullName}】已收入行囊！`,
+                'text-amber-300'
+            );
+        }
+    } else if (info.type === 'armor') {
+        // 若行囊防具與身上身穿防具同款 -> 執行消耗精鍊！
+        if (isSameEquipment(p.armor, info.id)) {
+            if (!p.armor.id) p.armor.id = info.id;
+            p.inventory.splice(index, 1);
+            executeEquipRefineAttempt(p.armor, info, '身穿', '消耗行囊');
+        } else {
+            // 不同款防具 -> 正常換裝，換下來的舊防具完整保留在行囊中
+            const prevArmorId = p.armor.id || findItemIdByName(p.armor.name) || 'ar_cloth';
+            const prevArmorRefine = p.armor.refine || 0;
+            const prevArmorFullName = formatEquipName(p.armor);
+
+            p.armor = {
+                id: info.id,
+                name: info.name,
+                def: info.def || 0,
+                refine: slotRefine
+            };
+
+            p.inventory.splice(index, 1);
+            addItemToBag(prevArmorId, 1, prevArmorRefine);
+
+            addLog(
+                `穿上了防具【${formatEquipName(p.armor)}】（${getItemDescription(info, slotRefine)}），換下的【${prevArmorFullName}】已收入行囊！`,
+                'text-emerald-300'
+            );
+        }
+    }
+
+    renderInventory();
+    updateUI();
+}
+
+/**
+ * ============================================================================
+ * 6. 5 碼英數 GAS 雲端存讀檔系統
+ * ============================================================================
+ */
+const GAS_STORAGE_KEY = 'dnd_dungeon_gas_url';
+const LOCAL_SAVES_KEY = 'dnd_dungeon_local_saves';
+
+function getGasUrl() {
+    const custom = localStorage.getItem(GAS_STORAGE_KEY);
+    if (custom !== null) return custom;
+    return DEFAULT_GAS_URL;
+}
+
+function updateConnectionStatusUI() {
+    const url = getGasUrl();
+    const statusEl = document.getElementById('connection-status');
+    if (url) {
+        statusEl.innerHTML = `<i class="fa-solid fa-cloud text-emerald-400 mr-1"></i>儲存模式：<span class="text-emerald-300 font-bold">GAS 雲端試算表已連線</span>`;
+    } else {
+        statusEl.innerHTML = `<i class="fa-solid fa-hard-drive text-amber-500 mr-1"></i>儲存模式：本地模擬 (點擊右側齒輪設定 GAS 雲端)`;
+    }
+}
+
+function generateRandomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    document.getElementById('save-code-input').value = code;
+}
+
+function openGasModal() {
+    document.getElementById('gas-url-input').value = getGasUrl();
+    document.getElementById('gas-modal').classList.remove('hidden');
+}
+
+function closeGasModal() {
+    document.getElementById('gas-modal').classList.add('hidden');
+}
+
+function saveGasUrl() {
+    const val = document.getElementById('gas-url-input').value.trim();
+    if (val && !val.startsWith('https://script.google.com/')) {
+        showDialog('格式錯誤', '請輸入有效的 Google Apps Script Web App 網址（以 https://script.google.com/ 開頭），或留空以使用本地模擬。');
+        return;
+    }
+    localStorage.setItem(GAS_STORAGE_KEY, val);
+    updateConnectionStatusUI();
+    closeGasModal();
+    fetchHallOfFame();
+    addLog(val ? '已更新 GAS 雲端網址並同步勇者殿堂！' : '已切換為本地模擬存檔模式。', 'text-amber-300');
+}
+
+function copyGasCode() {
+    const codeText = document.getElementById('gas-code-snippet').innerText;
+    const tempArea = document.createElement('textarea');
+    tempArea.value = codeText;
+    document.body.appendChild(tempArea);
+    tempArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempArea);
+    showDialog('複製成功', '完整的 Code.gs 後端程式碼已複製到剪貼簿！');
+}
+
+async function saveGame() {
+    const code = document.getElementById('save-code-input').value.trim().toUpperCase();
+    if (code.length !== 5) {
+        showDialog('代號格式不符', '請輸入完整的 5 碼英數字作為存檔代號（或點擊骰子圖示隨機產生）。');
+        return;
+    }
+
+    normalizeLegacyEquipIds(gameState);
+
+    const btnSave = document.getElementById('btn-save');
+    btnSave.disabled = true;
+    btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 儲存中';
+
+    const allSaves = JSON.parse(localStorage.getItem(LOCAL_SAVES_KEY) || '{}');
+    allSaves[code] = JSON.parse(JSON.stringify(gameState));
+    localStorage.setItem(LOCAL_SAVES_KEY, JSON.stringify(allSaves));
+
+    const gasUrl = getGasUrl();
+    try {
+        if (gasUrl) {
+            const res = await fetch(gasUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'save', code: code, state: gameState })
+            });
+            const data = await res.json();
+            if (data.status === 'updated' || data.status === 'created') {
+                addLog(`☁️ 雲端存檔成功！冒險代號：【${code}】`, 'text-emerald-400 font-bold');
+                showDialog('雲端存檔成功', `已將所有人物狀態、精鍊裝備與樓層進度寫入 GAS 試算表！\n您的 5 碼冒險代號為：【${code}】`);
+            } else {
+                throw new Error('GAS 回傳狀態異常');
+            }
+        } else {
+            addLog(`💾 本地存檔成功！冒險代號：【${code}】`, 'text-emerald-400 font-bold');
+            showDialog('本地存檔成功', `已將目前遊戲進度儲存於瀏覽器中（代號：【${code}】）。`);
+        }
+    } catch (err) {
+        console.error(err);
+        addLog(`❌ 雲端存檔失敗（已備份至本地）：${err.message}`, 'text-rose-400');
+        showDialog('雲端連線失敗', '無法連線至 GAS 伺服器，但已自動為您備份於瀏覽器本地端。');
+    } finally {
+        btnSave.disabled = false;
+        btnSave.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> 存檔 (SAVE)';
+    }
+}
+
+async function loadGame() {
+    const code = document.getElementById('save-code-input').value.trim().toUpperCase();
+    if (code.length !== 5) {
+        showDialog('代號格式不符', '請輸入要讀取的 5 碼英數字存檔代號。');
+        return;
+    }
+
+    const btnLoad = document.getElementById('btn-load');
+    btnLoad.disabled = true;
+    btnLoad.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 讀取中';
+
+    const gasUrl = getGasUrl();
+    try {
+        let loadedState = null;
+        if (gasUrl) {
+            const res = await fetch(`${gasUrl}?action=load&code=${encodeURIComponent(code)}`);
+            const data = await res.json();
+            if (data.status === 'ok' && data.state) {
+                loadedState = data.state;
+            } else if (data.status === 'not_found') {
+                showDialog('查無存檔', `在雲端試算表中找不到代號【${code}】的存檔紀錄。`);
+                return;
+            } else {
+                throw new Error('GAS 回傳格式錯誤');
+            }
+        } else {
+            const allSaves = JSON.parse(localStorage.getItem(LOCAL_SAVES_KEY) || '{}');
+            if (allSaves[code]) {
+                loadedState = allSaves[code];
+            } else {
+                showDialog('查無存檔', `本地資料庫中找不到代號【${code}】的存檔紀錄。`);
+                return;
+            }
+        }
+
+        // 自動補齊舊存檔中缺少的裝備 id 與精鍊欄位
+        normalizeLegacyEquipIds(loadedState);
+
+        gameState = loadedState;
+        animState.mode = gameState.inCombat ? 'combat' : 'explore';
+        resetDualDiceUI();
+        renderLogHistory();
+        addLog(`✨ 成功讀取冒險代號【${code}】的進度！歡迎回到 B${gameState.floor}F！`, 'text-cyan-300 font-bold');
+        updateUI();
+    } catch (err) {
+        console.error(err);
+        addLog(`❌ 讀檔失敗：${err.message}`, 'text-rose-400');
+        showDialog('讀檔失敗', '讀取 GAS 雲端資料時發生錯誤，請檢查網址與網路連線。');
+    } finally {
+        btnLoad.disabled = false;
+        btnLoad.innerHTML = '<i class="fa-solid fa-cloud-arrow-down text-sky-400"></i> 讀檔 (LOAD)';
+    }
+}
+
+/**
+ * ============================================================================
+ * 7. 四 Canvas 繪圖引擎（18x18 灰色石牆迷霧地圖 + 動態視界 + 雙骰子）
+ * ============================================================================
+ */
+const mapCanvas = document.getElementById('mapCanvas');
+const mapCtx = mapCanvas.getContext('2d');
+const stageCanvas = document.getElementById('stageCanvas');
+const stageCtx = stageCanvas.getContext('2d');
+const heroDiceCanvas = document.getElementById('heroDiceCanvas');
+const enemyDiceCanvas = document.getElementById('enemyDiceCanvas');
+
+function resizeCanvases() {
+    mapCanvas.width = 360;
+    mapCanvas.height = 360;
+
+    const stageRect = stageCanvas.parentElement.getBoundingClientRect();
+    stageCanvas.width = Math.max(260, Math.floor(stageRect.width));
+    stageCanvas.height = Math.max(150, Math.floor(stageRect.height));
+    drawDiceFace(heroDiceCanvas, animState.heroDiceFace, false);
+    drawDiceFace(enemyDiceCanvas, animState.enemyDiceFace, true);
+}
+
+function drawDiceFace(canvasEl, face, isEnemy = false) {
+    if (!canvasEl) return;
+    const ctx = canvasEl.getContext('2d');
+    const w = canvasEl.width;
+    const h = canvasEl.height;
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.strokeStyle = isEnemy ? 'rgba(255, 228, 230, 0.55)' : 'rgba(255, 255, 255, 0.65)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(2.5, 2.5, w - 5, h - 5);
+
+    ctx.strokeStyle = isEnemy ? 'rgba(136, 19, 55, 0.45)' : 'rgba(120, 53, 15, 0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(5, 5, w - 10, h - 10);
+
+    const pipPositions = {
+        1: [[0.5, 0.5]],
+        2: [[0.28, 0.28], [0.72, 0.72]],
+        3: [[0.26, 0.26], [0.5, 0.5], [0.74, 0.74]],
+        4: [[0.28, 0.28], [0.72, 0.28], [0.28, 0.72], [0.72, 0.72]],
+        5: [[0.28, 0.28], [0.72, 0.28], [0.5, 0.5], [0.28, 0.72], [0.72, 0.72]],
+        6: [[0.28, 0.24], [0.72, 0.24], [0.28, 0.5], [0.72, 0.5], [0.28, 0.76], [0.72, 0.76]]
+    };
+
+    const pips = pipPositions[face] || pipPositions[1];
+    pips.forEach(([px, py]) => {
+        const cx = w * px;
+        const cy = h * py;
+        const radius = face === 1 ? 7.2 : (face === 6 ? 4.3 : 5);
+
+        ctx.beginPath();
+        ctx.arc(cx, cy + 0.8, radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        if (isEnemy) {
+            ctx.fillStyle = (face === 1 || face === 6) ? '#881337' : '#2e1065';
+        } else {
+            ctx.fillStyle = (face === 1 || face === 6) ? '#b91c1c' : '#1c1917';
+        }
+        ctx.fill();
+    });
+}
+
+function drawFogMap() {
+    const w = mapCanvas.width;
+    const h = mapCanvas.height;
+    const cell = w / MAP_SIZE;
+
+    mapCtx.fillStyle = '#090807';
+    mapCtx.fillRect(0, 0, w, h);
+
+    for (let y = 0; y < MAP_SIZE; y++) {
+        for (let x = 0; x < MAP_SIZE; x++) {
+            const px = x * cell;
+            const py = y * cell;
+
+            if (!gameState.explored[y] || !gameState.explored[y][x]) {
+                mapCtx.fillStyle = '#110e0c';
+                mapCtx.fillRect(px, py, cell, cell);
+                mapCtx.strokeStyle = '#181411';
+                mapCtx.strokeRect(px, py, cell, cell);
+                continue;
+            }
+
+            const tile = gameState.map[y][x];
+            if (tile === TILE.WALL) {
+                mapCtx.fillStyle = '#78716c';
+                mapCtx.fillRect(px, py, cell, cell);
+                mapCtx.fillStyle = '#57534e';
+                mapCtx.fillRect(px + 1.5, py + 1.5, cell - 3, cell - 3);
+            } else {
+                mapCtx.fillStyle = '#1f1b18';
+                mapCtx.fillRect(px, py, cell, cell);
+                mapCtx.strokeStyle = '#2c2621';
+                mapCtx.strokeRect(px, py, cell, cell);
+            }
+
+            if (tile === TILE.CHEST_CLOSED) {
+                mapCtx.fillStyle = '#fbbf24';
+                mapCtx.fillRect(px + cell * 0.22, py + cell * 0.28, cell * 0.56, cell * 0.44);
+                mapCtx.strokeStyle = '#78350f';
+                mapCtx.strokeRect(px + cell * 0.22, py + cell * 0.28, cell * 0.56, cell * 0.44);
+            } else if (tile === TILE.CHEST_OPEN) {
+                mapCtx.fillStyle = '#785d3c';
+                mapCtx.fillRect(px + cell * 0.25, py + cell * 0.35, cell * 0.5, cell * 0.35);
+            } else if (tile === TILE.TRAP_REVEALED) {
+                mapCtx.strokeStyle = '#f97316';
+                mapCtx.lineWidth = 2;
+                mapCtx.beginPath();
+                mapCtx.moveTo(px + cell * 0.25, py + cell * 0.25);
+                mapCtx.lineTo(px + cell * 0.75, py + cell * 0.75);
+                mapCtx.moveTo(px + cell * 0.75, py + cell * 0.25);
+                mapCtx.lineTo(px + cell * 0.25, py + cell * 0.75);
+                mapCtx.stroke();
+            } else if (tile === TILE.STAIRS) {
+                mapCtx.fillStyle = '#22d3ee';
+                for (let s = 0; s < 3; s++) {
+                    mapCtx.fillRect(px + cell * (0.2 + s * 0.1), py + cell * (0.25 + s * 0.18), cell * (0.6 - s * 0.1), cell * 0.14);
+                }
+            } else if (tile === TILE.BOSS_ALTAR) {
+                mapCtx.fillStyle = '#a855f7';
+                mapCtx.fillRect(px + 2, py + 2, cell - 4, cell - 4);
+                mapCtx.fillStyle = '#fbbf24';
+                mapCtx.beginPath();
+                mapCtx.moveTo(px + cell * 0.2, py + cell * 0.72);
+                mapCtx.lineTo(px + cell * 0.2, py + cell * 0.34);
+                mapCtx.lineTo(px + cell * 0.35, py + cell * 0.5);
+                mapCtx.lineTo(px + cell * 0.5, py + cell * 0.26);
+                mapCtx.lineTo(px + cell * 0.65, py + cell * 0.5);
+                mapCtx.lineTo(px + cell * 0.8, py + cell * 0.34);
+                mapCtx.lineTo(px + cell * 0.8, py + cell * 0.72);
+                mapCtx.closePath();
+                mapCtx.fill();
+            }
+        }
+    }
+
+    gameState.monsters.forEach(m => {
+        if (gameState.explored[m.y] && gameState.explored[m.y][m.x]) {
+            const mx = m.x * cell + cell / 2;
+            const my = m.y * cell + cell / 2;
+            if (m.isFinalBoss) {
+                mapCtx.strokeStyle = '#fbbf24';
+                mapCtx.lineWidth = 2;
+                mapCtx.strokeRect(m.x * cell + 1.5, m.y * cell + 1.5, cell - 3, cell - 3);
+                return;
+            }
+            mapCtx.fillStyle = '#f43f5e';
+            mapCtx.beginPath();
+            mapCtx.moveTo(mx, my - cell * 0.32);
+            mapCtx.lineTo(mx + cell * 0.32, my + cell * 0.26);
+            mapCtx.lineTo(mx - cell * 0.32, my + cell * 0.26);
+            mapCtx.closePath();
+            mapCtx.fill();
+        }
+    });
+
+    const pCenterX = gameState.player.x * cell + cell / 2;
+    const pCenterY = gameState.player.y * cell + cell / 2;
+    const pulse = Math.sin(animState.tick * 0.1) * 1.6;
+
+    mapCtx.fillStyle = 'rgba(52, 211, 153, 0.35)';
+    mapCtx.beginPath();
+    mapCtx.arc(pCenterX, pCenterY, cell * 0.42 + pulse, 0, Math.PI * 2);
+    mapCtx.fill();
+
+    mapCtx.fillStyle = '#34d399';
+    mapCtx.beginPath();
+    mapCtx.arc(pCenterX, pCenterY, cell * 0.28, 0, Math.PI * 2);
+    mapCtx.fill();
+    mapCtx.strokeStyle = '#ffffff';
+    mapCtx.lineWidth = 1.2;
+    mapCtx.stroke();
+}
+
+function drawActionStage() {
+    const w = stageCanvas.width;
+    const h = stageCanvas.height;
+    animState.tick++;
+
+    const bgGrad = stageCtx.createLinearGradient(0, 0, 0, h);
+    if (gameState.floor === 100) {
+        bgGrad.addColorStop(0, '#1a0b2e');
+        bgGrad.addColorStop(0.65, '#2e1042');
+        bgGrad.addColorStop(1, '#12071c');
+    } else {
+        bgGrad.addColorStop(0, '#14100e');
+        bgGrad.addColorStop(0.65, '#221b17');
+        bgGrad.addColorStop(1, '#120e0c');
+    }
+    stageCtx.fillStyle = bgGrad;
+    stageCtx.fillRect(0, 0, w, h);
+
+    stageCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    stageCtx.lineWidth = 1;
+    for (let y = 18; y < h * 0.72; y += 22) {
+        stageCtx.beginPath();
+        stageCtx.moveTo(0, y);
+        stageCtx.lineTo(w, y);
+        stageCtx.stroke();
+    }
+
+    drawTorch(w * 0.14, h * 0.34, gameState.floor === 100 ? '#c084fc' : '#f59e0b');
+    drawTorch(w * 0.86, h * 0.34, gameState.floor === 100 ? '#c084fc' : '#f59e0b');
+
+    const groundY = h * 0.78;
+    stageCtx.fillStyle = gameState.floor === 100 ? '#180c24' : '#181310';
+    stageCtx.fillRect(0, groundY, w, h - groundY);
+    stageCtx.strokeStyle = gameState.floor === 100 ? '#7e22ce' : '#4a3b2c';
+    stageCtx.beginPath();
+    stageCtx.moveTo(0, groundY);
+    stageCtx.lineTo(w, groundY);
+    stageCtx.stroke();
+
+    const shakeX = animState.playerShake > 0 ? (Math.random() - 0.5) * animState.playerShake : 0;
+    if (animState.playerShake > 0) animState.playerShake--;
+    const walkBob = animState.mode === 'explore' ? Math.abs(Math.sin(animState.tick * 0.08)) * 3.5 : Math.sin(animState.tick * 0.05) * 1.5;
+    const heroX = (animState.mode === 'combat' ? w * 0.26 : w * 0.46) + shakeX;
+    drawHeroSprite(heroX, groundY - walkBob);
+
+    if (animState.mode === 'combat' && gameState.currentEnemy) {
+        const eShakeX = animState.enemyShake > 0 ? (Math.random() - 0.5) * animState.enemyShake : 0;
+        if (animState.enemyShake > 0) animState.enemyShake--;
+        const eFloat = Math.sin(animState.tick * 0.09) * 3;
+        drawMonsterSprite(w * 0.72 + eShakeX, groundY + eFloat, gameState.currentEnemy);
+    } else if (animState.mode === 'chest') {
+        drawOpenChestSprite(w * 0.68, groundY);
+    } else if (animState.mode === 'stairs') {
+        drawStairsSprite(w * 0.68, groundY);
+    } else if (animState.mode === 'trap') {
+        drawTrapSpikesSprite(w * 0.46, groundY);
+    }
+
+    for (let i = animState.particles.length - 1; i >= 0; i--) {
+        let pt = animState.particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.life--;
+        stageCtx.fillStyle = pt.color;
+        stageCtx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+        stageCtx.fillRect(pt.x, pt.y, pt.size, pt.size);
+        stageCtx.globalAlpha = 1;
+        if (pt.life <= 0) animState.particles.splice(i, 1);
+    }
+
+    for (let i = animState.floatingTexts.length - 1; i >= 0; i--) {
+        let ft = animState.floatingTexts[i];
+        ft.y -= 0.75;
+        ft.life--;
+        stageCtx.font = 'bold 14px "Noto Sans TC", sans-serif';
+        stageCtx.fillStyle = ft.color;
+        stageCtx.globalAlpha = Math.max(0, ft.life / 45);
+        stageCtx.fillText(ft.text, ft.x, ft.y);
+        stageCtx.globalAlpha = 1;
+        if (ft.life <= 0) animState.floatingTexts.splice(i, 1);
+    }
+
+    if (animState.flashAlpha > 0) {
+        stageCtx.fillStyle = animState.flashColor;
+        stageCtx.globalAlpha = animState.flashAlpha;
+        stageCtx.fillRect(0, 0, w, h);
+        stageCtx.globalAlpha = 1;
+        animState.flashAlpha -= 0.03;
+    }
+}
+
+function drawTorch(x, y, flameColor) {
+    stageCtx.fillStyle = '#5c3a21';
+    stageCtx.fillRect(x - 2.5, y, 5, 14);
+    const flicker = Math.sin(animState.tick * 0.25 + x) * 3;
+    const grad = stageCtx.createRadialGradient(x, y - 3, 2, x, y - 3, 26 + flicker);
+    grad.addColorStop(0, flameColor === '#c084fc' ? 'rgba(192, 132, 252, 0.45)' : 'rgba(251, 191, 36, 0.45)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    stageCtx.fillStyle = grad;
+    stageCtx.beginPath();
+    stageCtx.arc(x, y - 3, 26 + flicker, 0, Math.PI * 2);
+    stageCtx.fill();
+
+    stageCtx.fillStyle = flameColor;
+    stageCtx.beginPath();
+    stageCtx.arc(x, y - 3, 4 + Math.sin(animState.tick * 0.4) * 1.2, 0, Math.PI * 2);
+    stageCtx.fill();
+}
+
+function drawHeroSprite(x, y) {
+    stageCtx.fillStyle = gameState.cleared100 ? '#7e22ce' : (gameState.rebornCount > 0 ? '#059669' : '#b91c1c');
+    stageCtx.beginPath();
+    stageCtx.moveTo(x - 8, y - 30);
+    stageCtx.lineTo(x - 18, y - 3);
+    stageCtx.lineTo(x + 3, y - 3);
+    stageCtx.closePath();
+    stageCtx.fill();
+
+    stageCtx.fillStyle = '#94a3b8';
+    stageCtx.fillRect(x - 8, y - 30, 16, 22);
+    stageCtx.fillStyle = '#fcd34d';
+    stageCtx.fillRect(x - 6, y - 42, 12, 12);
+    stageCtx.fillStyle = '#cbd5e1';
+    stageCtx.fillRect(x - 7, y - 45, 14, 6);
+    stageCtx.fillStyle = '#475569';
+    stageCtx.fillRect(x - 6, y - 8, 5, 8);
+    stageCtx.fillRect(x + 1, y - 8, 5, 8);
+    stageCtx.fillStyle = '#e2e8f0';
+    stageCtx.fillRect(x + 10, y - 38, 3.5, 24);
+    stageCtx.fillStyle = '#d97706';
+    stageCtx.fillRect(x + 6, y - 16, 11, 3.5);
+}
+
+function drawMonsterSprite(x, y, monster) {
+    if (monster.shape === 'dragon_boss') {
+        const wingFlap = Math.sin(animState.tick * 0.14) * 10;
+        stageCtx.fillStyle = '#581c87';
+        stageCtx.beginPath();
+        stageCtx.moveTo(x, y - 38);
+        stageCtx.lineTo(x - 46, y - 62 + wingFlap);
+        stageCtx.lineTo(x - 28, y - 18);
+        stageCtx.closePath();
+        stageCtx.fill();
+
+        stageCtx.beginPath();
+        stageCtx.moveTo(x, y - 38);
+        stageCtx.lineTo(x + 46, y - 62 + wingFlap);
+        stageCtx.lineTo(x + 28, y - 18);
+        stageCtx.closePath();
+        stageCtx.fill();
+
+        stageCtx.fillStyle = '#3b0764';
+        stageCtx.fillRect(x - 18, y - 48, 36, 40);
+        stageCtx.fillStyle = '#7e22ce';
+        stageCtx.fillRect(x - 13, y - 62, 26, 16);
+        stageCtx.fillStyle = '#fbbf24';
+        stageCtx.fillRect(x - 15, y - 72, 4, 11);
+        stageCtx.fillRect(x + 11, y - 72, 4, 11);
+        stageCtx.fillStyle = '#f43f5e';
+        stageCtx.fillRect(x - 8, y - 56, 5, 4);
+        stageCtx.fillRect(x + 3, y - 56, 5, 4);
+        return;
+    }
+
+    if (monster.shape === 'miniboss') {
+        const aura = Math.sin(animState.tick * 0.12) * 3;
+        stageCtx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+        stageCtx.beginPath();
+        stageCtx.arc(x, y - 28, 28 + aura, 0, Math.PI * 2);
+        stageCtx.fill();
+
+        stageCtx.fillStyle = monster.color;
+        stageCtx.fillRect(x - 16, y - 44, 32, 36);
+        stageCtx.fillStyle = '#1e1b4b';
+        stageCtx.fillRect(x - 11, y - 58, 22, 14);
+        stageCtx.fillStyle = '#fbbf24';
+        stageCtx.fillRect(x - 13, y - 64, 4, 7);
+        stageCtx.fillRect(x + 9, y - 64, 4, 7);
+        stageCtx.fillStyle = '#f87171';
+        stageCtx.fillRect(x - 7, y - 52, 5, 4);
+        stageCtx.fillRect(x + 2, y - 52, 5, 4);
+        stageCtx.fillStyle = '#fde047';
+        stageCtx.fillRect(x - 22, y - 46, 5, 34);
+        return;
+    }
+
+    stageCtx.fillStyle = monster.color;
+    if (monster.shape === 'slime') {
+        stageCtx.beginPath();
+        stageCtx.arc(x, y - 12, 18, Math.PI, 0);
+        stageCtx.lineTo(x + 20, y);
+        stageCtx.lineTo(x - 20, y);
+        stageCtx.closePath();
+        stageCtx.fill();
+        stageCtx.fillStyle = '#0f172a';
+        stageCtx.fillRect(x - 7, y - 12, 3.5, 3.5);
+        stageCtx.fillRect(x + 3, y - 12, 3.5, 3.5);
+    } else {
+        stageCtx.fillRect(x - 12, y - 36, 24, 28);
+        stageCtx.fillRect(x - 8, y - 48, 16, 12);
+        stageCtx.fillStyle = '#ef4444';
+        stageCtx.fillRect(x - 5, y - 43, 3.5, 3.5);
+        stageCtx.fillRect(x + 2, y - 43, 3.5, 3.5);
+        stageCtx.fillStyle = '#cbd5e1';
+        stageCtx.fillRect(x - 17, y - 32, 4, 20);
+    }
+}
+
+function drawTrapSpikesSprite(x, y) {
+    stageCtx.fillStyle = '#f97316';
+    for (let i = -2; i <= 2; i++) {
+        stageCtx.beginPath();
+        stageCtx.moveTo(x + i * 9 - 4, y);
+        stageCtx.lineTo(x + i * 9, y - 14);
+        stageCtx.lineTo(x + i * 9 + 4, y);
+        stageCtx.closePath();
+        stageCtx.fill();
+    }
+}
+
+function drawOpenChestSprite(x, y) {
+    stageCtx.fillStyle = '#92400e';
+    stageCtx.fillRect(x - 15, y - 16, 30, 16);
+    stageCtx.strokeStyle = '#fbbf24';
+    stageCtx.lineWidth = 1.5;
+    stageCtx.strokeRect(x - 15, y - 16, 30, 16);
+    stageCtx.fillStyle = '#78350f';
+    stageCtx.fillRect(x - 15, y - 26, 30, 8);
+    stageCtx.fillStyle = 'rgba(251, 191, 36, 0.6)';
+    stageCtx.beginPath();
+    stageCtx.arc(x, y - 16, 13 + Math.sin(animState.tick * 0.15) * 2.5, Math.PI, 0);
+    stageCtx.fill();
+}
+
+function drawStairsSprite(x, y) {
+    stageCtx.fillStyle = '#22d3ee';
+    for (let i = 0; i < 4; i++) {
+        stageCtx.fillRect(x - 16 + i * 4, y - 6 - i * 6, 32 - i * 4, 5.5);
+    }
+}
+
+function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        animState.particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 5,
+            vy: (Math.random() - 0.8) * 5,
+            size: 2 + Math.random() * 2.5,
+            color,
+            life: 24 + Math.random() * 14,
+            maxLife: 38
+        });
+    }
+}
+
+function spawnFloatingText(text, x, y, color) {
+    animState.floatingTexts.push({ text, x, y, color, life: 45 });
+}
+
+function triggerFlash(rgba) {
+    animState.flashColor = rgba;
+    animState.flashAlpha = 1;
+}
+
+function renderLoop() {
+    drawFogMap();
+    drawActionStage();
+    requestAnimationFrame(renderLoop);
+}
+
+/**
+ * ============================================================================
+ * 8. UI 狀態同步、傷害預估與日誌控制
+ * ============================================================================
+ */
+function updateUI() {
+    const p = gameState.player;
+    const stats = getPlayerStats();
+    const dmgPrev = getDamagePreviews();
+
+    updateTierBadge();
+
+    const floorBadge = document.getElementById('floor-badge');
+    const headerStatus = document.getElementById('header-floor-status');
+    floorBadge.textContent = `地下 ${gameState.floor} 層 (B${gameState.floor}F)`;
+
+    if (gameState.floor === 100) {
+        headerStatus.textContent = '👑 決戰第 100 層・深淵魔龍皇';
+        headerStatus.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-950 border border-purple-400 text-purple-200 animate-pulse';
+    } else if (gameState.floor > 100) {
+        headerStatus.textContent = `🌌 無盡深淵模式・B${gameState.floor}F`;
+        headerStatus.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-cyan-950 border border-cyan-500 text-cyan-200';
+    } else {
+        headerStatus.textContent = `🧭 探索中・B${gameState.floor}F / 100F`;
+        headerStatus.className = 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-stone-900 border border-amber-600/50 text-amber-300';
+    }
+
+    if (gameState.cleared100) {
+        document.getElementById('endless-badge').classList.remove('hidden');
+    } else {
+        document.getElementById('endless-badge').classList.add('hidden');
+    }
+
+    if (gameState.rebornCount > 0) {
+        const rb = document.getElementById('reborn-badge');
+        rb.textContent = `轉生 ${gameState.rebornCount} 次`;
+        rb.classList.remove('hidden');
+    } else {
+        document.getElementById('reborn-badge').classList.add('hidden');
+    }
+
+    document.getElementById('stat-lv').textContent = `LV. ${p.lv}`;
+    document.getElementById('stat-hp').textContent = `${p.hp} / ${p.maxHp}`;
+    document.getElementById('bar-hp').style.width = `${Math.max(0, (p.hp / p.maxHp) * 100)}%`;
+
+    document.getElementById('stat-mp').textContent = `${p.mp} / ${p.maxMp}`;
+    document.getElementById('bar-mp').style.width = `${Math.max(0, (p.mp / p.maxMp) * 100)}%`;
+
+    document.getElementById('stat-exp').textContent = `${p.exp} / ${p.nextExp}`;
+    document.getElementById('bar-exp').style.width = `${Math.min(100, (p.exp / p.nextExp) * 100)}%`;
+
+    document.getElementById('stat-atk').textContent = stats.atk;
+    document.getElementById('stat-matk').textContent = stats.matk;
+    document.getElementById('stat-def').textContent = stats.def;
+    document.getElementById('hud-weapon').textContent = formatEquipName(p.weapon);
+    document.getElementById('hud-armor').textContent = formatEquipName(p.armor);
+
+    document.getElementById('stage-hero-atk').textContent = `ATK:${stats.atk}`;
+    document.getElementById('stage-hero-mag').textContent = `MAG:${stats.matk}`;
+    document.getElementById('stage-hero-def').textContent = `DEF:${stats.def}`;
+
+    document.getElementById('attack-dmg-preview').textContent =
+        gameState.inCombat
+            ? `1x:${dmgPrev.physNorm} / 暴擊:${dmgPrev.physCrit} (敵防${dmgPrev.enemyDef})`
+            : `1x:${dmgPrev.physNorm} / 暴擊:${dmgPrev.physCrit}`;
+
+    document.getElementById('magic-dmg-preview').textContent =
+        gameState.inCombat
+            ? `1x:${dmgPrev.magNorm} / 暴擊:${dmgPrev.magCrit} (${FIREBALL_MP_COST}MP)`
+            : `治癒1x:+${Math.round(stats.matk * 1.15)}HP (${FIREBALL_MP_COST}MP)`;
+
+    const totalItems = p.inventory.reduce((sum, item) => sum + item.count, 0);
+    document.getElementById('bag-count').textContent = totalItems;
+
+    const enemyHud = document.getElementById('enemy-hud');
+    const stageEnemyStats = document.getElementById('stage-enemy-stats');
+    const stageLabel = document.getElementById('stage-status-label');
+
+    if (gameState.inCombat && gameState.currentEnemy) {
+        const e = gameState.currentEnemy;
+        enemyHud.classList.remove('hidden');
+        stageEnemyStats.classList.remove('hidden');
+
+        document.getElementById('stage-enemy-atk').textContent = `ATK:${e.atk}`;
+        document.getElementById('stage-enemy-def').textContent = `DEF:${e.def}`;
+
+        if (e.isFinalBoss) {
+            document.getElementById('enemy-name').innerHTML = `<i class="fa-solid fa-crown text-amber-400"></i> ${e.name} (LV.100 魔王)`;
+            stageLabel.textContent = '👑 百層最終決戰';
+            stageLabel.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-purple-950 text-purple-200 border border-purple-500';
+        } else if (e.isMiniBoss) {
+            document.getElementById('enemy-name').innerHTML = `<i class="fa-solid fa-skull-crossbones text-amber-400"></i> [首領] ${e.name} LV.${e.lv}`;
+            stageLabel.textContent = '🔥 隱藏首領突襲';
+            stageLabel.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-200 border border-amber-500';
+        } else {
+            document.getElementById('enemy-name').textContent = `${e.name} LV.${e.lv}`;
+            stageLabel.textContent = '⚔️ 遭遇戰鬥中';
+            stageLabel.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700';
+        }
+        document.getElementById('enemy-hp-text').textContent = `${e.hp} / ${e.maxHp}`;
+        document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (e.hp / e.maxHp) * 100)}%`;
+    } else {
+        enemyHud.classList.add('hidden');
+        stageEnemyStats.classList.add('hidden');
+        if (animState.mode === 'chest') {
+            stageLabel.textContent = '✨ 發現寶藏';
+        } else if (animState.mode === 'trap') {
+            stageLabel.textContent = '⚠️ 觸發陷阱';
+        } else {
+            stageLabel.textContent = '🧭 地城探索中';
+        }
+        stageLabel.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700/50';
+    }
+}
+
+function addLog(text, colorClass = 'text-stone-300') {
+    gameState.logs.push({ text, colorClass });
+    if (gameState.logs.length > 85) gameState.logs.shift();
+    appendLogElement(text, colorClass);
+}
+
+function appendLogElement(text, colorClass) {
+    const logBox = document.getElementById('adventure-log');
+    const p = document.createElement('p');
+    p.className = colorClass;
+    p.innerHTML = `<span class="text-stone-600 mr-1">▸</span>${text}`;
+    logBox.appendChild(p);
+    logBox.scrollTop = logBox.scrollHeight;
+}
+
+function renderLogHistory() {
+    const logBox = document.getElementById('adventure-log');
+    logBox.innerHTML = '';
+    gameState.logs.forEach(entry => appendLogElement(entry.text, entry.colorClass));
+}
+
+function showDialog(title, message, buttons = null) {
+    document.getElementById('dialog-title').textContent = title;
+    document.getElementById('dialog-message').innerText = message;
+    const btnContainer = document.getElementById('dialog-buttons');
+    btnContainer.innerHTML = '';
+
+    const actionButtons = buttons || [{ text: '確定', class: 'rpg-btn px-5 py-1.5 rounded-lg text-sm font-bold', onClick: () => {} }];
+    actionButtons.forEach(b => {
+        const btn = document.createElement('button');
+        btn.className = b.class;
+        btn.textContent = b.text;
+        btn.onclick = () => {
+            document.getElementById('custom-dialog').classList.add('hidden');
+            if (b.onClick) b.onClick();
+        };
+        btnContainer.appendChild(btn);
+    });
+
+    document.getElementById('custom-dialog').classList.remove('hidden');
+}
+
+function resetGameConfirm() {
+    if (animState.isRollingDice) return;
+    showDialog(
+        '重新開始冒險',
+        '確定要放棄目前的探險進度並從 LV.1 重新生成地城嗎？（已存檔的 5 碼代號與勇者殿堂紀錄不會被刪除）',
+        [
+            { text: '取消', class: 'rpg-btn px-4 py-1.5 rounded-lg text-sm' },
+            { text: '重新開始', class: 'rpg-btn rpg-btn-danger px-4 py-1.5 rounded-lg text-sm font-bold', onClick: () => initNewGame(false) }
+        ]
+    );
+}
+
+function initNewGame(inheritLevel = false) {
+    const prevPlayer = gameState.player;
+    const prevCleared100 = gameState.cleared100;
+    const prevRebornCount = gameState.rebornCount || 0;
+
+    let startPlayer;
+    let nextRebornCount = 0;
+
+    if (inheritLevel && prevPlayer && prevPlayer.lv > 1) {
+        nextRebornCount = prevRebornCount + 1;
+        startPlayer = {
+            x: 2, y: 2,
+            lv: prevPlayer.lv,
+            exp: prevPlayer.exp,
+            nextExp: prevPlayer.nextExp,
+            hp: prevPlayer.maxHp,
+            maxHp: prevPlayer.maxHp,
+            mp: prevPlayer.maxMp,
+            maxMp: prevPlayer.maxMp,
+            baseAtk: prevPlayer.baseAtk,
+            baseMatk: prevPlayer.baseMatk,
+            baseDef: prevPlayer.baseDef,
+            weapon: { id: 'wp_rust_sword', name: '生鏽短劍', atk: 3, matk: 0, refine: 0 },
+            armor: { id: 'ar_cloth', name: '粗布衣', def: 2, refine: 0 },
+            inventory: [
+                { id: 'potion_hp', count: 3 },
+                { id: 'potion_mp', count: 2 }
+            ]
+        };
+    } else {
+        startPlayer = {
+            x: 2, y: 2,
+            lv: 1, exp: 0, nextExp: 20,
+            hp: 48, maxHp: 48,
+            mp: 24, maxMp: 24,
+            baseAtk: 6, baseMatk: 13, baseDef: 2,
+            weapon: { id: 'wp_rust_sword', name: '生鏽短劍', atk: 3, matk: 0, refine: 0 },
+            armor: { id: 'ar_cloth', name: '粗布衣', def: 2, refine: 0 },
+            inventory: [
+                { id: 'potion_hp', count: 3 },
+                { id: 'potion_mp', count: 2 }
+            ]
+        };
+    }
+
+    gameState = {
+        floor: 1,
+        cleared100: inheritLevel ? prevCleared100 : false,
+        rebornCount: nextRebornCount,
+        stepsOnFloor: 0,
+        miniBossSpawnedOnFloor: false,
+        player: startPlayer,
+        map: [],
+        explored: [],
+        monsters: [],
+        inCombat: false,
+        currentEnemy: null,
+        logs: []
+    };
+
+    document.getElementById('adventure-log').innerHTML = '';
+    generateFloor(1);
+    resetDualDiceUI();
+
+    if (inheritLevel && nextRebornCount > 0) {
+        addLog(`✨ 【第 ${nextRebornCount} 次英靈轉生】你完整繼承了 LV.${startPlayer.lv} 等級與基礎屬性，重返地下 1 層再度挑戰！`, 'text-emerald-300 font-black');
+    } else {
+        addLog('你點燃火把踏入深淵地城第一層（18×18 大迷宮），目標直指地下 100 層的【深淵混沌魔龍皇】！', 'text-amber-300 font-bold');
+    }
+    addLog('規則提示：視界窗底部可隨時查看敵我攻防數值；行囊中與身上同款的裝備可點擊「精鍊」消耗強化！', 'text-stone-400');
+    updateUI();
+}
+
+window.addEventListener('keydown', (e) => {
+    if (animState.isRollingDice) return;
+    if (document.activeElement.tagName === 'INPUT') return;
+    if (!document.getElementById('inventory-modal').classList.contains('hidden')) return;
+    if (!document.getElementById('gas-modal').classList.contains('hidden')) return;
+    if (!document.getElementById('victory-100-modal').classList.contains('hidden')) return;
+    if (!document.getElementById('custom-dialog').classList.contains('hidden')) return;
+
+    switch (e.key.toLowerCase()) {
+        case 'w':
+        case 'arrowup':
+            e.preventDefault();
+            handleMove(0, -1);
+            break;
+        case 's':
+        case 'arrowdown':
+            e.preventDefault();
+            handleMove(0, 1);
+            break;
+        case 'a':
+        case 'arrowleft':
+            e.preventDefault();
+            handleMove(-1, 0);
+            break;
+        case 'd':
+        case 'arrowright':
+            e.preventDefault();
+            handleMove(1, 0);
+            break;
+    }
+});
+
+window.addEventListener('resize', resizeCanvases);
+
+window.onload = function () {
+    resizeCanvases();
+    updateConnectionStatusUI();
+    generateRandomCode();
+    fetchHallOfFame();
+    initNewGame(false);
+    renderLoop();
+};
+</script>
+</body>
+</html>
